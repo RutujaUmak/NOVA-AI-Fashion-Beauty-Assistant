@@ -8,7 +8,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------- AI ----------
+# ---------- AI ---------- This sets:Application titlePage icon Wide layout
 def get_client():
     try:
         key = st.secrets.get("GEMINI_API_KEY", "")
@@ -28,6 +28,7 @@ PRODUCTS = [
     {"id":9,"name":"Structured Women's Handbag","cat":"Accessories","type":"Bags","price":1199,"old":1999,"rating":4.6,"image":"https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=700"},
     {"id":10,"name":"Soft Blush Makeup Palette","cat":"Beauty","type":"Makeup","price":899,"old":1399,"rating":4.6,"image":"https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700"},
 ]
+# Product Name Category Type Price Original Price Rating Image
 
 # ---------- STATE ----------
 if "cart" not in st.session_state: st.session_state.cart = []
@@ -38,7 +39,7 @@ if "messages" not in st.session_state:
         "content":"Hi! I'm **NOVA AI** ✨\n\nI can help with outfits, makeup, skincare, accessories and budget shopping."
     }]
 
-# ---------- STYLE ----------
+# ---------- STYLE ---------- This controls: NOVA AI logo Hero section Colors Fonts Product cards Buttons Chat area Footer
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
