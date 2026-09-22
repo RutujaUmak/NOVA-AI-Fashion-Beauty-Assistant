@@ -17,23 +17,115 @@ def get_client():
         return None
 
 PRODUCTS = [
-    {"id": 1,
-    "name": "Floral Printed Kurta Set",
-    "cat": "Women",
-    "type": "Ethnic Wear",
-    "price": 1499,
-    "old": 2499,
-    "rating": 4.5,
-    "image": "https://images.pexels.com/photos/5637851/pexels-photo-5637851.jpeg?auto=compress&cs=tinysrgb&w=800"},
-    {"id":2,"name":"Pastel Oversized Shirt","cat":"Women","type":"Western Wear","price":899,"old":1599,"rating":4.3,"image":"https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=700"},
-    {"id":3,"name":"Classic Men's Casual Shirt","cat":"Men","type":"Western Wear","price":999,"old":1799,"rating":4.4,"image":"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=700"},
-    {"id":4,"name":"Relaxed Fit Denim Jeans","cat":"Men","type":"Jeans","price":1299,"old":2299,"rating":4.3,"image":"https://images.unsplash.com/photo-1542272604-787c3835535d?w=700"},
-    {"id":5,"name":"Hydrating Glow Serum","cat":"Beauty","type":"Skincare","price":799,"old":1299,"rating":4.7,"image":"https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700"},
-    {"id":6,"name":"Velvet Matte Lipstick","cat":"Beauty","type":"Makeup","price":599,"old":899,"rating":4.5,"image":"https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700"},
-    {"id":7,"name":"Minimal Gold Necklace","cat":"Accessories","type":"Jewellery","price":699,"old":1199,"rating":4.6,"image":"https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=700"},
-    {"id":8,"name":"Everyday Sneakers","cat":"Footwear","type":"Shoes","price":1299,"old":2199,"rating":4.4,"image":"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700"},
-    {"id":9,"name":"Structured Women's Handbag","cat":"Accessories","type":"Bags","price":1199,"old":1999,"rating":4.6,"image":"https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=700"},
-    {"id":10,"name":"Soft Blush Makeup Palette","cat":"Beauty","type":"Makeup","price":899,"old":1399,"rating":4.6,"image":"https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700"},
+    {
+        "id": 1,
+        "name": "Floral Printed Kurta Set",
+        "cat": "Women",
+        "type": "Ethnic Wear",
+        "price": 1499,
+        "old": 2499,
+        "rating": 4.5,
+        "image": "https://images.pexels.com/photos/35504999/pexels-photo-35504999.jpeg"
+    },
+
+    {
+        "id": 2,
+        "name": "Pastel Oversized Shirt",
+        "cat": "Women",
+        "type": "Western Wear",
+        "price": 899,
+        "old": 1599,
+        "rating": 4.3,
+        "image": "https://images.pexels.com/photos/36899306/pexels-photo-36899306.jpeg"
+    },
+
+    {
+        "id": 3,
+        "name": "Classic Men's Casual Shirt",
+        "cat": "Men",
+        "type": "Western Wear",
+        "price": 999,
+        "old": 1799,
+        "rating": 4.4,
+        "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=700"
+    },
+
+    {
+        "id": 4,
+        "name": "Relaxed Fit Denim Jeans",
+        "cat": "Men",
+        "type": "Jeans",
+        "price": 1299,
+        "old": 2299,
+        "rating": 4.3,
+        "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=700"
+    },
+
+    {
+        "id": 5,
+        "name": "Hydrating Glow Serum",
+        "cat": "Beauty",
+        "type": "Skincare",
+        "price": 799,
+        "old": 1299,
+        "rating": 4.7,
+        "image": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700"
+    },
+
+    {
+        "id": 6,
+        "name": "Velvet Matte Lipstick",
+        "cat": "Beauty",
+        "type": "Makeup",
+        "price": 599,
+        "old": 899,
+        "rating": 4.5,
+        "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700"
+    },
+
+    {
+        "id": 7,
+        "name": "Minimal Gold Necklace",
+        "cat": "Accessories",
+        "type": "Jewellery",
+        "price": 699,
+        "old": 1199,
+        "rating": 4.6,
+        "image": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=700"
+    },
+
+    {
+        "id": 8,
+        "name": "Everyday Sneakers",
+        "cat": "Footwear",
+        "type": "Shoes",
+        "price": 1299,
+        "old": 2199,
+        "rating": 4.4,
+        "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700"
+    },
+
+    {
+        "id": 9,
+        "name": "Structured Women's Handbag",
+        "cat": "Accessories",
+        "type": "Bags",
+        "price": 1199,
+        "old": 1999,
+        "rating": 4.6,
+        "image": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=700"
+    },
+
+    {
+        "id": 10,
+        "name": "Soft Blush Makeup Palette",
+        "cat": "Beauty",
+        "type": "Makeup",
+        "price": 899,
+        "old": 1399,
+        "rating": 4.6,
+        "image": "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700"
+    }
 ]
 # Product Name Category Type Price Original Price Rating Image
 
