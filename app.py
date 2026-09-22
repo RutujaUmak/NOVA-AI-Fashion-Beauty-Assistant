@@ -76,8 +76,24 @@ padding:22px;border:1px solid #efd9e7;border-radius:20px}
 .stButton>button{border-radius:9px;color:#222!important;background:white;
 border:1px solid #ddd;font-weight:600}
 .stButton>button:hover{border-color:#d63384;color:#d63384!important}
-[data-testid="stChatInput"] input{color:#222!important}
-[data-testid="stChatInput"] input::placeholder{color:#777!important}
+/* Make every important text visible */
+.stApp,.stApp p,.stApp span,.stApp label,.stApp div{color:#222}
+.top,.top *{color:#222!important}
+.logo,.logo *{color:#222!important}
+.logo span{color:#d63384!important}
+.hero,.hero *{color:#222!important}
+.hero .pill,.hero .pill *{color:#fff!important}
+.title,.title *{color:#222!important}
+.ai,.ai *{color:#222!important}
+.card,.card *{color:#222}
+.type,.old{color:#777!important}
+.rate{color:#087f5b!important}
+.stButton>button,.stButton>button *{color:#222!important}
+.stRadio label,.stRadio label *{color:#222!important}
+[data-testid="stChatMessage"], [data-testid="stChatMessage"] *{color:#222!important}
+[data-testid="stChatInput"] textarea{color:#fff!important;background:#272932!important;caret-color:#fff!important}
+[data-testid="stChatInput"] textarea::placeholder{color:#d5d5d5!important;opacity:1!important}
+[data-testid="stChatInput"]{color:#fff!important}
 </style>
 """, unsafe_allow_html=True)
 
