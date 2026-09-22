@@ -1,7 +1,5 @@
-```python
 import streamlit as st
-import random
-from typing import List, Dict
+from google import genai
 
 # ============================================================
 # PAGE CONFIG
@@ -15,23 +13,10 @@ st.set_page_config(
 )
 
 # ============================================================
-# OPTIONAL GEMINI AI
+# GEMINI AI
 # ============================================================
 
-try:
-    from google import genai
-
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
-
-
 def get_gemini_client():
-    """Create Gemini client only when an API key is available."""
-
-    if not GEMINI_AVAILABLE:
-        return None
-
     try:
         api_key = st.secrets.get("GEMINI_API_KEY", "")
 
@@ -45,7 +30,7 @@ def get_gemini_client():
 
 
 # ============================================================
-# PRODUCT DATA
+# PRODUCT CATALOG
 # ============================================================
 
 PRODUCTS = [
@@ -207,7 +192,6 @@ PRODUCTS = [
     },
 ]
 
-
 # ============================================================
 # SESSION STATE
 # ============================================================
@@ -221,20 +205,18 @@ if "wishlist" not in st.session_state:
 if "selected_category" not in st.session_state:
     st.session_state.selected_category = "All"
 
-if "search_query" not in st.session_state:
-    st.session_state.search_query = ""
-
-if "chat_messages" not in st.session_state:
-    st.session_state.chat_messages = [
+if "messages" not in st.session_state:
+    st.session_state.messages = [
         {
             "role": "assistant",
             "content": (
-                "Hi! I'm NOVA ✨ Your personal fashion & beauty assistant. "
-                "Tell me what you're looking for and I'll help you find the right style."
+                "Hi! I'm **NOVA AI** ✨\n\n"
+                "Your personal Fashion & Beauty Assistant.\n\n"
+                "Ask me about outfits, makeup, skincare, accessories, "
+                "shopping budgets or product recommendations."
             ),
         }
     ]
-
 
 # ============================================================
 # CSS
@@ -254,48 +236,45 @@ html, body, [class*="css"] {
     background: #f7f7f8;
 }
 
-/* Hide Streamlit branding */
-#MainMenu {
-    visibility: hidden;
-}
-
-footer {
-    visibility: hidden;
-}
-
+#MainMenu,
+footer,
 header {
     visibility: hidden;
 }
 
-/* Main container */
 .block-container {
     padding-top: 1.2rem;
     padding-bottom: 3rem;
-    max-width: 1450px;
+    max-width: 1400px;
 }
 
-/* Brand */
+/* Header */
+
+.top-header {
+    background: white;
+    padding: 20px 25px;
+    border-radius: 18px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
 .nova-brand {
     font-family: 'Playfair Display', serif;
-    font-size: 34px;
+    font-size: 36px;
     font-weight: 700;
-    letter-spacing: -1px;
 }
 
 .nova-brand span {
     color: #d63384;
 }
 
-/* Header */
-.top-header {
-    background: white;
-    padding: 18px 24px;
-    border-radius: 18px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
+.brand-subtitle {
+    color: #777;
+    margin-top: 3px;
 }
 
 /* Hero */
+
 .hero {
     background: linear-gradient(
         120deg,
@@ -305,22 +284,7 @@ header {
     );
     border-radius: 24px;
     padding: 38px;
-    margin-bottom: 26px;
-    min-height: 260px;
-}
-
-.hero-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 46px;
-    font-weight: 700;
-    line-height: 1.1;
-    color: #171717;
-}
-
-.hero-subtitle {
-    color: #666;
-    font-size: 17px;
-    margin-top: 12px;
+    margin-bottom: 28px;
 }
 
 .hero-pill {
@@ -331,10 +295,24 @@ header {
     border-radius: 50px;
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.5px;
+}
+
+.hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 45px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-top: 15px;
+}
+
+.hero-subtitle {
+    color: #666;
+    font-size: 17px;
+    margin-top: 12px;
 }
 
 /* Section */
+
 .section-title {
     font-family: 'Playfair Display', serif;
     font-size: 29px;
@@ -342,24 +320,19 @@ header {
     margin: 28px 0 15px;
 }
 
-/* Product card */
+/* Product */
+
 .product-card {
     background: white;
     border-radius: 16px;
     overflow: hidden;
     border: 1px solid #eeeeee;
-    transition: all .2s ease;
     margin-bottom: 10px;
-}
-
-.product-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(0,0,0,.10);
 }
 
 .product-image {
     width: 100%;
-    height: 265px;
+    height: 250px;
     object-fit: cover;
 }
 
@@ -370,12 +343,12 @@ header {
 .product-name {
     font-weight: 600;
     font-size: 15px;
-    margin-bottom: 6px;
 }
 
 .product-type {
     color: #888;
     font-size: 12px;
+    margin-top: 4px;
 }
 
 .product-price {
@@ -394,8 +367,18 @@ header {
 .discount {
     color: #00875a;
     font-size: 12px;
-    font-weight: 600;
     margin-left: 5px;
+}
+
+.badge {
+    position: absolute;
+    margin: 10px;
+    background: #171717;
+    color: white;
+    padding: 5px 9px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
 }
 
 .rating {
@@ -408,34 +391,24 @@ header {
     margin-top: 7px;
 }
 
-/* Badge */
-.badge {
-    position: absolute;
-    margin: 10px;
-    background: #171717;
-    color: white;
-    padding: 5px 9px;
-    border-radius: 4px;
-    font-size: 9px;
-    font-weight: 700;
-}
+/* AI */
 
-/* AI box */
 .ai-box {
     background: linear-gradient(135deg, #fff0f7, #f7efff);
     border: 1px solid #f0d8e8;
     border-radius: 22px;
     padding: 25px;
-    margin-top: 10px;
+    margin-top: 35px;
 }
 
 .ai-title {
     font-family: 'Playfair Display', serif;
-    font-size: 27px;
+    font-size: 28px;
     font-weight: 700;
 }
 
 /* Category */
+
 .category-card {
     background: white;
     border: 1px solid #eee;
@@ -445,14 +418,16 @@ header {
 }
 
 /* Cart */
+
 .cart-box {
     background: white;
-    padding: 18px;
+    padding: 20px;
     border-radius: 16px;
     border: 1px solid #eee;
 }
 
 /* Buttons */
+
 .stButton > button {
     border-radius: 9px;
     font-weight: 600;
@@ -465,12 +440,8 @@ header {
     color: #d63384;
 }
 
-/* Chat */
-[data-testid="stChatMessage"] {
-    border-radius: 15px;
-}
-
 /* Footer */
+
 .nova-footer {
     margin-top: 50px;
     background: #171717;
@@ -480,16 +451,10 @@ header {
     text-align: center;
 }
 
-.small-muted {
-    color: #888;
-    font-size: 12px;
-}
-
 </style>
 """,
     unsafe_allow_html=True,
 )
-
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -497,51 +462,41 @@ header {
 
 def discount_percent(product):
     return round(
-        ((product["old_price"] - product["price"]) / product["old_price"]) * 100
+        ((product["old_price"] - product["price"])
+         / product["old_price"]) * 100
     )
 
 
-def add_to_cart(product):
-    if product["id"] not in st.session_state.cart:
-        st.session_state.cart.append(product["id"])
+def add_to_cart(product_id):
+    if product_id not in st.session_state.cart:
+        st.session_state.cart.append(product_id)
 
 
-def toggle_wishlist(product):
-    if product["id"] in st.session_state.wishlist:
-        st.session_state.wishlist.remove(product["id"])
+def toggle_wishlist(product_id):
+    if product_id in st.session_state.wishlist:
+        st.session_state.wishlist.remove(product_id)
     else:
-        st.session_state.wishlist.append(product["id"])
+        st.session_state.wishlist.append(product_id)
 
 
 def get_product(product_id):
     return next(
         (p for p in PRODUCTS if p["id"] == product_id),
-        None,
+        None
     )
-
-
-def search_products(query):
-    if not query:
-        return PRODUCTS
-
-    query = query.lower()
-
-    return [
-        p
-        for p in PRODUCTS
-        if query in p["name"].lower()
-        or query in p["category"].lower()
-        or query in p["type"].lower()
-        or query in p["description"].lower()
-    ]
 
 
 def product_context():
     return "\n".join(
         [
-            f"{p['name']} | Category: {p['category']} | "
-            f"Type: {p['type']} | Price: ₹{p['price']} | "
-            f"Rating: {p['rating']}"
+            f"""
+Product: {p['name']}
+Category: {p['category']}
+Type: {p['type']}
+Price: ₹{p['price']}
+Rating: {p['rating']}
+Description: {p['description']}
+"""
             for p in PRODUCTS
         ]
     )
@@ -555,112 +510,159 @@ def generate_ai_response(user_message):
 
     client = get_gemini_client()
 
-    # --------------------------------------------------------
-    # GEMINI
-    # --------------------------------------------------------
-
     if client:
 
         prompt = f"""
-You are NOVA, a sophisticated fashion and beauty shopping assistant.
+You are NOVA AI, a professional Fashion & Beauty shopping assistant.
 
-Your job is to help customers discover products, create outfits,
-suggest beauty products and answer shopping questions.
+You help customers with:
 
-Available products:
+- Fashion
+- Women's fashion
+- Men's fashion
+- Makeup
+- Skincare
+- Haircare
+- Accessories
+- Shoes
+- Bags
+- Fragrance
+- Outfit styling
+- Occasion-based styling
+- Budget shopping
+- Product recommendations
+
+PRODUCT CATALOG:
 
 {product_context()}
 
-Customer:
+CUSTOMER MESSAGE:
+
 {user_message}
 
-Rules:
-- Be friendly and concise.
-- Use Indian Rupees.
-- Recommend products from the available catalog when appropriate.
-- Do not invent product names that are not in the catalog.
-- For outfit requests, combine products logically.
-- Ask a short follow-up question if the request is unclear.
-- Do not make medical diagnoses.
-- For skincare concerns, provide general cosmetic guidance and recommend
-  consulting a qualified professional for medical concerns.
+RULES:
+
+1. Be friendly, stylish and concise.
+2. Use Indian Rupees (₹).
+3. Recommend products from the catalog when relevant.
+4. Never invent products that are not in the catalog.
+5. If the user gives a budget, respect it.
+6. If the user asks for an outfit, combine suitable products.
+7. If the request is unclear, ask one short follow-up question.
+8. Give practical fashion and beauty suggestions.
+9. Do not provide medical diagnoses.
+10. For medical skin/hair problems, suggest consulting a qualified professional.
+11. Use emojis naturally but don't overuse them.
 """
 
         try:
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
-                contents=prompt,
+                contents=prompt
             )
 
-            return response.text
+            if response and response.text:
+                return response.text
 
         except Exception:
             pass
 
     # --------------------------------------------------------
-    # FALLBACK RESPONSE
+    # FALLBACK
     # --------------------------------------------------------
 
     text = user_message.lower()
 
     if "wedding" in text or "party" in text:
 
-        recommendations = [
-            p
-            for p in PRODUCTS
-            if p["category"] in ["Women", "Accessories", "Beauty"]
-        ][:4]
+        return """
+✨ **Wedding / Party Look**
 
-        names = ", ".join(p["name"] for p in recommendations)
+For a stylish look, I recommend:
 
-        return (
-            "✨ For a wedding or party look, I'd suggest building the look "
-            f"around these pieces: {names}. "
-            "For a more traditional look, choose ethnic wear with minimal "
-            "gold jewellery. For a modern look, try a statement outfit with "
-            "soft glam makeup."
-        )
+👗 Floral Printed Kurta Set  
+💎 Minimal Gold Necklace  
+💄 Soft Blush Makeup Palette  
+🌸 Floral Eau De Parfum
 
-    if "skincare" in text or "skin" in text:
-
-        return (
-            "🧴 For a simple beauty routine, start with a gentle cleanser, "
-            "hydrating product and sunscreen during the day. "
-            "From our catalog, the **Hydrating Glow Serum** is a popular "
-            "choice. If you tell me your skin type and budget, I can narrow "
-            "down the suggestions."
-        )
+Tell me your **budget** and whether you want a **traditional or modern look**.
+"""
 
     if "makeup" in text:
 
-        return (
-            "💄 For an everyday makeup look, try a soft base, blush, "
-            "defined brows and a comfortable lip colour. "
-            "Our **Velvet Matte Lipstick** and **Soft Blush Makeup Palette** "
-            "are good options from the catalog."
-        )
+        return """
+💄 **Makeup Recommendation**
 
-    if "men" in text:
+For an everyday soft-glam look:
 
-        return (
-            "👔 For men's fashion, you can explore our casual shirts, "
-            "denim and sneakers. Tell me the occasion and your budget, "
-            "and I'll create a complete outfit."
-        )
+• Soft Blush Makeup Palette
+• Velvet Matte Lipstick
+• Keep the base light and natural
+
+Tell me your budget and the occasion, and I'll create a complete makeup look.
+"""
+
+    if "skin" in text or "skincare" in text:
+
+        return """
+🧴 **Skincare Recommendation**
+
+For a simple routine:
+
+1. Gentle cleanser
+2. Hydrating product
+3. Sunscreen during the day
+
+Our catalog includes **Hydrating Glow Serum — ₹799**.
+
+Tell me your skin type and budget for a more specific recommendation.
+"""
+
+    if "men" in text or "mens" in text:
+
+        return """
+👔 **Men's Fashion**
+
+You can build a casual look with:
+
+• Classic Men's Casual Shirt — ₹999
+• Relaxed Fit Denim Jeans — ₹1,299
+• Everyday Sneakers — ₹1,299
+
+Tell me the occasion and your budget and I'll create a complete outfit.
+"""
 
     if "under" in text or "budget" in text:
 
-        return (
-            "💰 Absolutely! Tell me your budget, for example "
-            "\"outfit under ₹2000\" or \"beauty products under ₹1000\", "
-            "and I'll suggest suitable products."
-        )
+        return """
+💰 **Budget Shopping**
 
-    return (
-        "✨ I can help with fashion, beauty, skincare, makeup, outfits, "
-        "accessories and budget-based shopping. Try asking me something like "
-        "\"Suggest a wedding outfit under ₹3000\"."
-    )
+Absolutely! Tell me something like:
+
+• "Fashion under ₹2000"
+• "Makeup under ₹1000"
+• "Wedding outfit under ₹3000"
+• "Men's outfit under ₹2500"
+
+I'll suggest products from our catalog.
+"""
+
+    return """
+✨ I can help you with:
+
+👗 Fashion & outfits  
+💄 Makeup  
+🧴 Skincare  
+💇 Beauty  
+👜 Accessories  
+👟 Footwear  
+💰 Budget shopping  
+🎉 Occasion styling  
+
+Try asking:
+
+**"Suggest a wedding outfit under ₹3000"**
+"""
 
 
 # ============================================================
@@ -670,34 +672,164 @@ Rules:
 st.markdown(
     """
 <div class="top-header">
-    <div class="nova-brand">
-        NOVA<span>AI</span>
-    </div>
-    <div style="color:#777; margin-top:3px;">
-        Fashion • Beauty • Lifestyle
-    </div>
+
+<div class="nova-brand">
+NOVA<span>AI</span>
+</div>
+
+<div class="brand-subtitle">
+Fashion • Beauty • Lifestyle • AI Styling
+</div>
+
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-
 # ============================================================
-# SEARCH
+# HERO
 # ============================================================
 
-search = st.text_input(
-    "Search",
-    placeholder="Search for dresses, makeup, skincare, shoes, bags...",
-    label_visibility="collapsed",
+st.markdown(
+    """
+<div class="hero">
+
+<div class="hero-pill">
+NOVA AI STYLE STUDIO
+</div>
+
+<div class="hero-title">
+Your style.<br>
+Your beauty.<br>
+Your NOVA. ✨
+</div>
+
+<div class="hero-subtitle">
+Your personal AI assistant for fashion, beauty and shopping.
+</div>
+
+</div>
+""",
+    unsafe_allow_html=True,
 )
 
-st.session_state.search_query = search
+# ============================================================
+# QUICK CHAT PROMPTS
+# ============================================================
 
+st.markdown(
+    '<div class="section-title">What can NOVA help with?</div>',
+    unsafe_allow_html=True,
+)
+
+quick_prompts = [
+    "👗 Wedding outfit",
+    "💄 Makeup",
+    "🧴 Skincare",
+    "👔 Men's fashion",
+    "👜 Accessories",
+    "💰 Budget shopping",
+]
+
+prompt_cols = st.columns(6)
+
+for i, prompt_text in enumerate(quick_prompts):
+
+    with prompt_cols[i]:
+
+        if st.button(
+            prompt_text,
+            key=f"quick_prompt_{i}",
+            use_container_width=True,
+        ):
+            clean_prompt = prompt_text.split(" ", 1)[1]
+
+            st.session_state.messages.append(
+                {
+                    "role": "user",
+                    "content": clean_prompt,
+                }
+            )
+
+            answer = generate_ai_response(clean_prompt)
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": answer,
+                }
+            )
+
+            st.rerun()
 
 # ============================================================
-# NAVIGATION
+# AI CHAT
 # ============================================================
+
+st.markdown(
+    """
+<div class="ai-box">
+
+<div class="ai-title">
+✨ Ask NOVA — Your AI Fashion & Beauty Assistant
+</div>
+
+<p style="color:#666;">
+Chat with NOVA for personalized fashion, beauty and shopping recommendations.
+</p>
+
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+# Display chat history
+
+for message in st.session_state.messages:
+
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+
+user_prompt = st.chat_input(
+    "Ask NOVA... e.g. Suggest a wedding outfit under ₹3000"
+)
+
+if user_prompt:
+
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_prompt,
+        }
+    )
+
+    with st.chat_message("user"):
+        st.markdown(user_prompt)
+
+    with st.chat_message("assistant"):
+
+        with st.spinner("NOVA is styling your look... ✨"):
+
+            answer = generate_ai_response(user_prompt)
+
+        st.markdown(answer)
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": answer,
+        }
+    )
+
+# ============================================================
+# PRODUCT SECTION
+# ============================================================
+
+st.markdown(
+    '<div class="section-title">✨ Explore Products</div>',
+    unsafe_allow_html=True,
+)
 
 categories = [
     "All",
@@ -708,122 +840,33 @@ categories = [
     "Footwear",
 ]
 
-cols = st.columns(len(categories))
+category_cols = st.columns(len(categories))
 
 for i, category in enumerate(categories):
 
-    with cols[i]:
+    with category_cols[i]:
 
         if st.button(
             category,
-            key=f"cat_{category}",
+            key=f"category_{category}",
             use_container_width=True,
         ):
             st.session_state.selected_category = category
             st.rerun()
 
 
-# ============================================================
-# HERO
-# ============================================================
+selected_category = st.session_state.selected_category
 
-st.markdown(
-    """
-<div class="hero">
+if selected_category == "All":
 
-    <div class="hero-pill">NOVA AI STYLE STUDIO</div>
-
-    <div class="hero-title">
-        Your style.<br>
-        Your beauty.<br>
-        Your NOVA. ✨
-    </div>
-
-    <div class="hero-subtitle">
-        Discover fashion, beauty and lifestyle products curated
-        around your personal style.
-    </div>
-
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
-
-# ============================================================
-# QUICK CATEGORY BUTTONS
-# ============================================================
-
-st.markdown(
-    '<div class="section-title">Shop by Category</div>',
-    unsafe_allow_html=True,
-)
-
-quick_categories = [
-    ("👗", "Fashion", "Women"),
-    ("👔", "Men", "Men"),
-    ("💄", "Makeup", "Beauty"),
-    ("🧴", "Skincare", "Beauty"),
-    ("👜", "Accessories", "Accessories"),
-    ("👟", "Footwear", "Footwear"),
-]
-
-qcols = st.columns(6)
-
-for i, (emoji, label, value) in enumerate(quick_categories):
-
-    with qcols[i]:
-
-        st.markdown(
-            f"""
-            <div class="category-card">
-                <div style="font-size:30px">{emoji}</div>
-                <b>{label}</b>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if st.button(
-            f"Explore {label}",
-            key=f"quick_{label}",
-            use_container_width=True,
-        ):
-            st.session_state.selected_category = value
-            st.rerun()
-
-
-# ============================================================
-# FILTER PRODUCTS
-# ============================================================
-
-selected = st.session_state.selected_category
-
-if selected == "All":
     filtered_products = PRODUCTS
+
 else:
+
     filtered_products = [
         p for p in PRODUCTS
-        if p["category"] == selected
+        if p["category"] == selected_category
     ]
-
-if search:
-    filtered_products = search_products(search)
-
-
-# ============================================================
-# PRODUCT SECTION
-# ============================================================
-
-st.markdown(
-    f'<div class="section-title">Trending Now ✨</div>',
-    unsafe_allow_html=True,
-)
-
-st.caption(
-    f"{len(filtered_products)} products available"
-)
-
 
 # ============================================================
 # PRODUCT GRID
@@ -841,51 +884,56 @@ for row_start in range(0, len(filtered_products), 4):
 
             st.markdown(
                 f"""
-                <div class="product-card">
+<div class="product-card">
 
-                    <div style="position:relative;">
-                        <div class="badge">
-                            {product["badge"]}
-                        </div>
+<div style="position:relative;">
 
-                        <img
-                            src="{product["image"]}"
-                            class="product-image"
-                        />
-                    </div>
+<div class="badge">
+{product["badge"]}
+</div>
 
-                    <div class="product-body">
+<img
+src="{product["image"]}"
+class="product-image"
+/>
 
-                        <div class="product-name">
-                            {product["name"]}
-                        </div>
+</div>
 
-                        <div class="product-type">
-                            {product["type"]}
-                        </div>
+<div class="product-body">
 
-                        <div class="product-price">
-                            ₹{product["price"]}
-                            <span class="old-price">
-                                ₹{product["old_price"]}
-                            </span>
+<div class="product-name">
+{product["name"]}
+</div>
 
-                            <span class="discount">
-                                {discount_percent(product)}% OFF
-                            </span>
-                        </div>
+<div class="product-type">
+{product["type"]}
+</div>
 
-                        <div class="rating">
-                            ★ {product["rating"]}
-                        </div>
+<div class="product-price">
+₹{product["price"]}
 
-                        <span class="small-muted">
-                            ({product["reviews"]:,} reviews)
-                        </span>
+<span class="old-price">
+₹{product["old_price"]}
+</span>
 
-                    </div>
-                </div>
-                """,
+<span class="discount">
+{discount_percent(product)}% OFF
+</span>
+
+</div>
+
+<div class="rating">
+★ {product["rating"]}
+</div>
+
+<span style="color:#888;font-size:12px;">
+({product["reviews"]:,} reviews)
+</span>
+
+</div>
+
+</div>
+""",
                 unsafe_allow_html=True,
             )
 
@@ -895,23 +943,24 @@ for row_start in range(0, len(filtered_products), 4):
 
                 if st.button(
                     "🛍 Add",
-                    key=f"cart_{product['id']}",
+                    key=f"add_{product['id']}",
                     use_container_width=True,
                 ):
 
-                    add_to_cart(product)
+                    add_to_cart(product["id"])
+
                     st.toast(
                         f"{product['name']} added to cart"
                     )
 
             with c2:
 
-                heart = (
-                    "❤️"
-                    if product["id"]
+                is_wishlisted = (
+                    product["id"]
                     in st.session_state.wishlist
-                    else "♡"
                 )
+
+                heart = "❤️" if is_wishlisted else "♡"
 
                 if st.button(
                     heart,
@@ -919,78 +968,15 @@ for row_start in range(0, len(filtered_products), 4):
                     use_container_width=True,
                 ):
 
-                    toggle_wishlist(product)
+                    toggle_wishlist(product["id"])
                     st.rerun()
-
-
-# ============================================================
-# AI STYLE ASSISTANT
-# ============================================================
-
-st.markdown(
-    """
-<div class="ai-box">
-
-<div class="ai-title">
-✨ Ask NOVA — Your AI Stylist
-</div>
-
-<p style="color:#666;">
-Get personalized fashion and beauty recommendations.
-</p>
-
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
-
-# Display messages
-
-for message in st.session_state.chat_messages:
-
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-
-prompt = st.chat_input(
-    "Ask NOVA: e.g. Suggest a wedding outfit under ₹3000..."
-)
-
-if prompt:
-
-    st.session_state.chat_messages.append(
-        {
-            "role": "user",
-            "content": prompt,
-        }
-    )
-
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    with st.chat_message("assistant"):
-
-        with st.spinner("NOVA is styling your look... ✨"):
-
-            answer = generate_ai_response(prompt)
-
-        st.markdown(answer)
-
-    st.session_state.chat_messages.append(
-        {
-            "role": "assistant",
-            "content": answer,
-        }
-    )
-
 
 # ============================================================
 # CART + WISHLIST
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">Your Shopping Space</div>',
+    '<div class="section-title">🛍 Your Shopping Space</div>',
     unsafe_allow_html=True,
 )
 
@@ -1004,9 +990,11 @@ wishlist_products = [
     for product_id in st.session_state.wishlist
 ]
 
-c1, c2 = st.columns(2)
+cart_col, wish_col = st.columns(2)
 
-with c1:
+# CART
+
+with cart_col:
 
     st.markdown(
         '<div class="cart-box"><h3>🛍 Your Cart</h3>',
@@ -1021,12 +1009,12 @@ with c1:
 
         total = 0
 
-        for p in cart_products:
+        for product in cart_products:
 
-            total += p["price"]
+            total += product["price"]
 
             st.write(
-                f"**{p['name']}** — ₹{p['price']}"
+                f"**{product['name']}** — ₹{product['price']}"
             )
 
         st.divider()
@@ -1035,7 +1023,11 @@ with c1:
             f"### Total: ₹{total:,}"
         )
 
-with c2:
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# WISHLIST
+
+with wish_col:
 
     st.markdown(
         '<div class="cart-box"><h3>❤️ Wishlist</h3>',
@@ -1048,12 +1040,13 @@ with c2:
 
     else:
 
-        for p in wishlist_products:
+        for product in wishlist_products:
 
             st.write(
-                f"**{p['name']}** — ₹{p['price']}"
+                f"**{product['name']}** — ₹{product['price']}"
             )
 
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ============================================================
 # FOOTER
@@ -1063,20 +1056,23 @@ st.markdown(
     """
 <div class="nova-footer">
 
-    <div style="font-family:'Playfair Display';font-size:30px;">
-        NOVA<span style="color:#ff72ad;">AI</span>
-    </div>
+<div style="
+font-family:'Playfair Display';
+font-size:30px;
+font-weight:700;
+">
+NOVA<span style="color:#ff72ad;">AI</span>
+</div>
 
-    <p>
-        Fashion • Beauty • Lifestyle • AI Styling
-    </p>
+<p>
+Fashion • Beauty • Lifestyle • AI Styling
+</p>
 
-    <div style="color:#aaa;font-size:13px;">
-        AI-powered shopping experience
-    </div>
+<div style="color:#aaa;font-size:13px;">
+AI-powered fashion and beauty assistant
+</div>
 
 </div>
 """,
     unsafe_allow_html=True,
 )
-```
