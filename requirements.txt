@@ -1,0 +1,4 @@
+```text
+streamlit==1.64.0
+google-genai>=1.0.0
+```
