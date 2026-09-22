@@ -17,7 +17,7 @@ def get_client():
         return None
 
 PRODUCTS = [
-    {"id":1,"name":"Floral Printed Kurta Set","cat":"Women","type":"Ethnic Wear","price":1499,"old":2499,"rating":4.5,"image":"https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=700"},
+    {"id":1,"name":"Floral Printed Kurta Set","cat":"Women","type":"Ethnic Wear","price":1499,"old":2499,"rating":4.5,"image": "https://picsum.photos/400/500?random=1"},
     {"id":2,"name":"Pastel Oversized Shirt","cat":"Women","type":"Western Wear","price":899,"old":1599,"rating":4.3,"image":"https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=700"},
     {"id":3,"name":"Classic Men's Casual Shirt","cat":"Men","type":"Western Wear","price":999,"old":1799,"rating":4.4,"image":"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=700"},
     {"id":4,"name":"Relaxed Fit Denim Jeans","cat":"Men","type":"Jeans","price":1299,"old":2299,"rating":4.3,"image":"https://images.unsplash.com/photo-1542272604-787c3835535d?w=700"},
