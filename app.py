@@ -254,18 +254,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------- QUICK CHAT ----------
-# ---------- QUICK CHAT ----------
 st.markdown('<div class="title">What can NOVA help with?</div>', unsafe_allow_html=True)
-
-quick = [
-    "👗 Wedding outfit",
-    "💄 Makeup",
-    "🧴 Skincare",
-    "👔 Men's fashion",
-    "👜 Accessories",
-    "💰 Budget"
-]
-
+quick = ["👗 Wedding outfit","💄 Makeup","🧴 Skincare","👔 Men's fashion","👜 Accessories","💰 Budget"]
 cols = st.columns(6)
 
 for i, text in enumerate(quick):
@@ -276,14 +266,29 @@ for i, text in enumerate(quick):
             st.session_state.messages.append({"role":"assistant","content":ask_nova(q)})
             st.rerun()
 
+# ---------- CHAT ----------
+st.markdown("""
+<div class="ai">
+<div class="title" style="margin:0">✨ Ask NOVA</div>
+<p style="color:#666">Get quick recommendations for your next look.</p>
+</div>
+""", unsafe_allow_html=True)
 
-# =====================================================
-# ⭐ PUT YOUR NEW CHATBOT CODE HERE
-# =====================================================
+for m in st.session_state.messages:
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
 
+question = st.chat_input("Ask NOVA... e.g. Suggest a wedding outfit under ₹3000")
 
-# ---------- PRODUCTS ----------
-st.markdown('<div class="title">✨ Explore Products</div>', unsafe_allow_html=True)
+if question:
+    st.session_state.messages.append({"role":"user","content":question})
+    with st.chat_message("user"):
+        st.markdown(question)
+    with st.chat_message("assistant"):
+        with st.spinner("NOVA is styling your look..."):
+            answer = ask_nova(question)
+        st.markdown(answer)
+    st.session_state.messages.append({"role":"assistant","content":answer})
 
 # ---------- PRODUCTS ----------
 st.markdown('<div class="title">✨ Explore Products</div>', unsafe_allow_html=True)
