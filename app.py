@@ -1,1112 +1,363 @@
 import streamlit as st
-import os
-import re
+from google import genai
 
-# ============================================================
-# PAGE CONFIG
-# ============================================================
-
+# ---------- PAGE ----------
 st.set_page_config(
-    page_title="NOVA | Fashion & Beauty",
+    page_title="NOVA AI | Fashion & Beauty",
     page_icon="✨",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="wide"
 )
 
-
-# ============================================================
-# PRODUCT DATA
-# ============================================================
+# ---------- AI ---------- This sets:Application titlePage icon Wide layout
+def get_client():
+    try:
+        key = st.secrets.get("GEMINI_API_KEY", "")
+        return genai.Client(api_key=key) if key else None
+    except Exception:
+        return None
 
 PRODUCTS = [
-
     {
         "id": 1,
         "name": "Floral Printed Kurta Set",
-        "category": "Women",
+        "cat": "Women",
         "type": "Ethnic Wear",
         "price": 1499,
         "old": 2499,
         "rating": 4.5,
-        "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85"
+        "image": "https://images.pexels.com/photos/35504999/pexels-photo-35504999.jpeg"
     },
 
     {
         "id": 2,
         "name": "Pastel Oversized Shirt",
-        "category": "Women",
-        "type": "Shirt",
+        "cat": "Women",
+        "type": "Western Wear",
         "price": 899,
         "old": 1599,
         "rating": 4.3,
-        "image": "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=85"
+        "image": "https://images.pexels.com/photos/36899306/pexels-photo-36899306.jpeg"
     },
 
     {
         "id": 3,
-        "name": "Women's Denim Jacket",
-        "category": "Women",
-        "type": "Jacket",
-        "price": 1299,
-        "old": 2199,
+        "name": "Classic Men's Casual Shirt",
+        "cat": "Men",
+        "type": "Western Wear",
+        "price": 999,
+        "old": 1799,
         "rating": 4.4,
-        "image": "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=800&q=85"
+        "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=700"
     },
 
     {
         "id": 4,
-        "name": "Elegant Party Dress",
-        "category": "Women",
-        "type": "Dress",
-        "price": 1899,
-        "old": 2999,
-        "rating": 4.6,
-        "image": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 5,
-        "name": "Cotton Straight Kurta",
-        "category": "Women",
-        "type": "Ethnic Wear",
-        "price": 799,
-        "old": 1299,
-        "rating": 4.2,
-        "image": "https://images.unsplash.com/photo-1583391733981-8498403d1f96?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 6,
-        "name": "High Waist Blue Jeans",
-        "category": "Women",
-        "type": "Jeans",
-        "price": 1199,
-        "old": 1999,
-        "rating": 4.5,
-        "image": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 7,
-        "name": "Floral Casual Top",
-        "category": "Women",
-        "type": "Top",
-        "price": 699,
-        "old": 1199,
-        "rating": 4.3,
-        "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 8,
-        "name": "Elegant Anarkali Suit",
-        "category": "Women",
-        "type": "Ethnic Wear",
-        "price": 2199,
-        "old": 3499,
-        "rating": 4.7,
-        "image": "https://images.unsplash.com/photo-1610189012906-3c9c9f9e8d9d?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 9,
-        "name": "Women's Black Blazer",
-        "category": "Women",
-        "type": "Formal Wear",
-        "price": 1699,
-        "old": 2599,
-        "rating": 4.4,
-        "image": "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 10,
-        "name": "Printed Summer Dress",
-        "category": "Women",
-        "type": "Dress",
-        "price": 999,
-        "old": 1699,
-        "rating": 4.5,
-        "image": "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=85"
-    },
-
-    # MEN
-
-    {
-        "id": 11,
-        "name": "Classic Men's Casual Shirt",
-        "category": "Men",
-        "type": "Shirt",
-        "price": 999,
-        "old": 1799,
-        "rating": 4.4,
-        "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 12,
         "name": "Relaxed Fit Denim Jeans",
-        "category": "Men",
+        "cat": "Men",
         "type": "Jeans",
         "price": 1299,
         "old": 2299,
         "rating": 4.3,
-        "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=800&q=85"
+        "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=700"
     },
 
     {
-        "id": 13,
-        "name": "Men's Black T-Shirt",
-        "category": "Men",
-        "type": "T-Shirt",
-        "price": 599,
-        "old": 999,
-        "rating": 4.4,
-        "image": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 14,
-        "name": "Men's Formal Shirt",
-        "category": "Men",
-        "type": "Formal Wear",
-        "price": 899,
-        "old": 1499,
-        "rating": 4.5,
-        "image": "https://images.unsplash.com/photo-1603252110481-7ba873bf42ab?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 15,
-        "name": "Slim Fit Chinos",
-        "category": "Men",
-        "type": "Trousers",
-        "price": 1199,
-        "old": 1999,
-        "rating": 4.3,
-        "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 16,
-        "name": "Men's Denim Jacket",
-        "category": "Men",
-        "type": "Jacket",
-        "price": 1499,
-        "old": 2499,
-        "rating": 4.6,
-        "image": "https://images.unsplash.com/photo-1495105787522-5334e3ffa0ef?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 17,
-        "name": "Men's Polo T-Shirt",
-        "category": "Men",
-        "type": "T-Shirt",
-        "price": 799,
-        "old": 1299,
-        "rating": 4.5,
-        "image": "https://images.unsplash.com/photo-1586363104868-3a5e2ab60d99?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 18,
-        "name": "Men's Casual Hoodie",
-        "category": "Men",
-        "type": "Hoodie",
-        "price": 1099,
-        "old": 1899,
-        "rating": 4.4,
-        "image": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=800&q=85"
-    },
-
-    # BEAUTY
-
-    {
-        "id": 19,
+        "id": 5,
         "name": "Hydrating Glow Serum",
-        "category": "Beauty",
+        "cat": "Beauty",
         "type": "Skincare",
         "price": 799,
         "old": 1299,
         "rating": 4.7,
-        "image": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=85"
+        "image": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700"
     },
 
     {
-        "id": 20,
+        "id": 6,
         "name": "Velvet Matte Lipstick",
-        "category": "Beauty",
+        "cat": "Beauty",
         "type": "Makeup",
         "price": 599,
         "old": 899,
         "rating": 4.5,
-        "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=800&q=85"
+        "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700"
     },
 
     {
-        "id": 21,
-        "name": "Vitamin C Face Serum",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 699,
-        "old": 1199,
-        "rating": 4.5,
-        "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 22,
-        "name": "Daily Sunscreen SPF 50",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 599,
-        "old": 899,
-        "rating": 4.6,
-        "image": "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=800&q=85"
-    },
-
-    # ACCESSORIES
-
-    {
-        "id": 23,
+        "id": 7,
         "name": "Minimal Gold Necklace",
-        "category": "Accessories",
+        "cat": "Accessories",
         "type": "Jewellery",
         "price": 699,
         "old": 1199,
         "rating": 4.6,
-        "image": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=85"
+        "image": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=700"
     },
 
     {
-        "id": 24,
-        "name": "Structured Women's Handbag",
-        "category": "Accessories",
-        "type": "Bags",
-        "price": 1199,
-        "old": 1999,
-        "rating": 4.6,
-        "image": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=85"
-    },
-
-    {
-        "id": 25,
-        "name": "Fashion Sunglasses",
-        "category": "Accessories",
-        "type": "Sunglasses",
-        "price": 399,
-        "old": 699,
-        "rating": 4.3,
-        "image": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=800&q=85"
-    },
-
-    # FOOTWEAR
-
-    {
-        "id": 26,
+        "id": 8,
         "name": "Everyday Sneakers",
-        "category": "Footwear",
+        "cat": "Footwear",
         "type": "Shoes",
         "price": 1299,
         "old": 2199,
         "rating": 4.4,
-        "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85"
+        "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700"
     },
 
     {
-        "id": 27,
-        "name": "Women's Casual Sneakers",
-        "category": "Footwear",
-        "type": "Shoes",
-        "price": 999,
-        "old": 1699,
-        "rating": 4.5,
-        "image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=85"
+        "id": 9,
+        "name": "Structured Women's Handbag",
+        "cat": "Accessories",
+        "type": "Bags",
+        "price": 1199,
+        "old": 1999,
+        "rating": 4.6,
+        "image": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=700"
     },
 
     {
-        "id": 28,
-        "name": "Men's Running Shoes",
-        "category": "Footwear",
-        "type": "Sports Shoes",
-        "price": 1599,
-        "old": 2599,
-        "rating": 4.7,
-        "image": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=85"
-    },
-
+        "id": 10,
+        "name": "Soft Blush Makeup Palette",
+        "cat": "Beauty",
+        "type": "Makeup",
+        "price": 899,
+        "old": 1399,
+        "rating": 4.6,
+        "image": "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700"
+    }
 ]
+# Product Name Category Type Price Original Price Rating Image
 
-
-# ============================================================
-# SESSION STATE
-# ============================================================
-
-if "cart" not in st.session_state:
-    st.session_state.cart = []
-
-if "wishlist" not in st.session_state:
-    st.session_state.wishlist = []
-
+# ---------- STATE ----------
+if "cart" not in st.session_state: st.session_state.cart = []
+if "wish" not in st.session_state: st.session_state.wish = []
 if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-
-# ============================================================
-# CSS
-# ============================================================
-
-st.markdown(
-    """
-    <style>
-
-    /* GLOBAL */
-
-    .stApp {
-        background: #f8f8f8;
-    }
-
-    .block-container {
-        max-width: 1250px;
-        padding-top: 1rem;
-        padding-bottom: 4rem;
-    }
-
-
-    /* NAVBAR */
-
-    .navbar {
-        background: white;
-        padding: 16px 25px;
-        border-radius: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 22px;
-        border: 1px solid #eeeeee;
-    }
-
-    .brand {
-        font-size: 28px;
-        font-weight: 800;
-        letter-spacing: -1px;
-    }
-
-    .brand span {
-        color: #e91e63;
-    }
-
-    .navtext {
-        color: #666;
-        font-size: 14px;
-    }
-
-
-    /* HERO */
-
-    .hero {
-        background:
-        linear-gradient(
-            90deg,
-            rgba(20,20,20,.90),
-            rgba(20,20,20,.35)
-        ),
-        url("https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1800&q=90");
-
-        background-size: cover;
-        background-position: center;
-
-        min-height: 380px;
-
-        border-radius: 25px;
-
-        padding: 70px 60px;
-
-        display: flex;
-        align-items: center;
-
-        color: white;
-
-        margin-bottom: 30px;
-    }
-
-    .hero h1 {
-        font-size: 48px;
-        line-height: 1.05;
-        margin-bottom: 15px;
-    }
-
-    .hero p {
-        font-size: 17px;
-        color: #eeeeee;
-        max-width: 520px;
-    }
-
-    .hero-tag {
-        display: inline-block;
-        background: #e91e63;
-        padding: 7px 14px;
-        border-radius: 20px;
-        font-size: 13px;
-        margin-bottom: 15px;
-    }
-
-
-    /* SECTION */
-
-    .section-title {
-        font-size: 26px;
-        font-weight: 800;
-        margin-top: 30px;
-        margin-bottom: 15px;
-    }
-
-
-    /* CATEGORY */
-
-    .category-card {
-        background: white;
-        border-radius: 18px;
-        padding: 22px;
-        text-align: center;
-        border: 1px solid #eeeeee;
-        transition: .2s;
-    }
-
-    .category-icon {
-        font-size: 34px;
-        margin-bottom: 8px;
-    }
-
-    .category-name {
-        font-weight: 700;
-    }
-
-    .category-sub {
-        font-size: 12px;
-        color: #888;
-    }
-
-
-    /* PRODUCTS */
-
-    .product-card {
-        background: white;
-        border-radius: 18px;
-        padding: 10px;
-        border: 1px solid #eeeeee;
-        margin-bottom: 15px;
-    }
-
-    .product-image {
-        width: 100%;
-        height: 280px;
-        object-fit: cover;
-        border-radius: 14px;
-    }
-
-    .product-name {
-        font-size: 15px;
-        font-weight: 700;
-        margin-top: 10px;
-    }
-
-    .product-type {
-        font-size: 12px;
-        color: #888;
-    }
-
-    .price {
-        font-size: 18px;
-        font-weight: 800;
-        margin-top: 5px;
-    }
-
-    .old-price {
-        color: #999;
-        text-decoration: line-through;
-        font-size: 12px;
-        margin-left: 5px;
-    }
-
-    .rating {
-        color: #087f5b;
-        font-size: 13px;
-        margin-top: 5px;
-    }
-
-
-    /* ASSISTANT */
-
-    .assistant-box {
-        background: white;
-        border: 1px solid #eeeeee;
-        border-radius: 22px;
-        padding: 30px;
-        margin-top: 35px;
-    }
-
-    .assistant-title {
-        font-size: 28px;
-        font-weight: 800;
-    }
-
-    .assistant-sub {
-        color: #777;
-        margin-bottom: 20px;
-    }
-
-
-    /* FOOTER */
-
-    .footer {
-        text-align: center;
-        color: #999;
-        padding: 40px;
-        font-size: 13px;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# NAVBAR
-# ============================================================
-
-st.markdown(
-    """
-    <div class="navbar">
-
-        <div class="brand">
-            NOVA<span>AI</span>
-        </div>
-
-        <div class="navtext">
-            Women &nbsp;&nbsp; Men &nbsp;&nbsp; Beauty
-            &nbsp;&nbsp; Accessories &nbsp;&nbsp; Footwear
-        </div>
-
-        <div class="navtext">
-            🛍️ Cart
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# HERO
-# ============================================================
-
-st.markdown(
-    """
-    <div class="hero">
-
-        <div>
-
-            <div class="hero-tag">
-                NEW SEASON
-            </div>
-
-            <h1>
-                Style that<br>
-                feels like you.
-            </h1>
-
-            <p>
-                Discover fashion, beauty and everyday
-                essentials with NOVA.
-            </p>
-
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# CATEGORY SECTION
-# ============================================================
-
-st.markdown(
-    '<div class="section-title">Shop by Category</div>',
-    unsafe_allow_html=True
-)
-
-
-categories = [
-    ("👗", "Women", "Fashion & ethnic wear"),
-    ("👔", "Men", "Everyday essentials"),
-    ("💄", "Beauty", "Makeup & skincare"),
-    ("👜", "Accessories", "Complete your look"),
-    ("👟", "Footwear", "Shoes & sneakers"),
-]
-
-
-cols = st.columns(5)
-
-
-for i, (icon, name, sub) in enumerate(categories):
-
-    with cols[i]:
-
-        st.markdown(
-            f"""
-            <div class="category-card">
-
-                <div class="category-icon">
-                    {icon}
-                </div>
-
-                <div class="category-name">
-                    {name}
-                </div>
-
-                <div class="category-sub">
-                    {sub}
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
-# ============================================================
-# FEATURED PRODUCTS
-# ============================================================
-
-st.markdown(
-    '<div class="section-title">Trending Now</div>',
-    unsafe_allow_html=True
-)
-
-
-featured = PRODUCTS[:8]
-
-
-for start in range(
-    0,
-    len(featured),
-    4
-):
-
-    row = featured[
-        start:start + 4
-    ]
-
-    cols = st.columns(4)
-
-
-    for i, product in enumerate(row):
-
-        with cols[i]:
-
-            st.markdown(
-                '<div class="product-card">',
-                unsafe_allow_html=True
-            )
-
-
-            # IMPORTANT:
-            # Direct URL image display
-
-            try:
-
-                st.image(
-                    product["image"],
-                    use_container_width=True
-                )
-
-            except Exception:
-
-                st.info(
-                    "Product image unavailable"
-                )
-
-
-            st.markdown(
-                f"""
-                <div class="product-name">
-                    {product['name']}
-                </div>
-
-                <div class="product-type">
-                    {product['category']} • {product['type']}
-                </div>
-
-                <div class="price">
-                    ₹{product['price']:,}
-
-                    <span class="old-price">
-                        ₹{product['old']:,}
-                    </span>
-                </div>
-
-                <div class="rating">
-                    ⭐ {product['rating']}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-            b1, b2 = st.columns(2)
-
-
-            with b1:
-
-                if st.button(
-                    "Add to Bag",
-                    key=f"add_{product['id']}",
-                    use_container_width=True
-                ):
-
-                    if product["id"] not in st.session_state.cart:
-
-                        st.session_state.cart.append(
-                            product["id"]
-                        )
-
-                    st.toast(
-                        "Added to bag 🛍️"
-                    )
-
-
-            with b2:
-
-                if st.button(
-                    "♡",
-                    key=f"wish_{product['id']}",
-                    use_container_width=True
-                ):
-
-                    if product["id"] not in st.session_state.wishlist:
-
-                        st.session_state.wishlist.append(
-                            product["id"]
-                        )
-
-                    else:
-
-                        st.session_state.wishlist.remove(
-                            product["id"]
-                        )
-
-                    st.rerun()
-
-
-            st.markdown(
-                "</div>",
-                unsafe_allow_html=True
-            )
-
-
-# ============================================================
-# NOVA SHOPPING ASSISTANT
-# ============================================================
-
-st.markdown(
-    """
-    <div class="assistant-box">
-
-        <div class="assistant-title">
-            ✨ Ask NOVA
-        </div>
-
-        <div class="assistant-sub">
-            Tell me what you're shopping for.
-            I'll help you find something from the collection.
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# QUICK SEARCH
-# ============================================================
-
-quick = st.columns(4)
-
-
-questions = [
-    "Show me kurtas under ₹1500",
-    "Women's shirts",
-    "Men's fashion",
-    "Beauty under ₹800",
-]
-
-
-def find_products(query):
-
-    q = query.lower()
-
-    budget = None
-
-    match = re.search(
-        r"(?:under|below|upto|up to)\s*₹?(\d+)",
-        q
+    st.session_state.messages = [{
+        "role":"assistant",
+        "content":"Hi! I'm **NOVA AI** ✨\n\nI can help with outfits, makeup, skincare, accessories and budget shopping."
+    }]
+
+# ---------- STYLE ---------- This controls: NOVA AI logo Hero section Colors Fonts Product cards Buttons Chat area Footer
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+html,body,[class*="css"]{font-family:'DM Sans',sans-serif}
+.stApp{background:#f7f7f8;color:#222}
+#MainMenu,header,footer{visibility:hidden}
+.block-container{max-width:1250px;padding:1.2rem 1rem 3rem}
+
+.top{background:white;padding:20px 25px;border-radius:18px;
+box-shadow:0 4px 20px #0000000c;margin-bottom:20px}
+.logo{font:700 36px 'Playfair Display';color:#222}
+.logo span{color:#d63384}
+.sub{color:#666}
+
+.hero{padding:38px;border-radius:24px;margin-bottom:25px;
+background:linear-gradient(120deg,#fff0f6,#f5efff,#fff8ef)}
+.pill{display:inline-block;background:#171717;color:white;padding:7px 14px;
+border-radius:30px;font-size:12px;font-weight:600}
+.hero h1{font:700 44px/1.1 'Playfair Display';color:#222;margin:18px 0 10px}
+.hero p{color:#555;font-size:17px}
+
+.title{font:700 28px 'Playfair Display';color:#222;margin:25px 0 15px}
+.ai{background:linear-gradient(135deg,#fff0f7,#f7efff);
+padding:22px;border:1px solid #efd9e7;border-radius:20px}
+.card{background:#fff;border:1px solid #eee;border-radius:15px;overflow:hidden}
+.card img{width:100%;height:210px;object-fit:cover}
+.body{padding:13px}
+.name{font-weight:600;color:#222}
+.type{font-size:12px;color:#777}
+.price{font-size:18px;font-weight:700;color:#222;margin-top:7px}
+.old{text-decoration:line-through;color:#999;font-size:12px;margin-left:5px}
+.rate{color:#087f5b;font-size:12px;margin-top:5px}
+
+.stButton>button{border-radius:9px;color:#222!important;background:white;
+border:1px solid #ddd;font-weight:600}
+.stButton>button:hover{border-color:#d63384;color:#d63384!important}
+/* Make every important text visible */
+.stApp,.stApp p,.stApp span,.stApp label,.stApp div{color:#222}
+.top,.top *{color:#222!important}
+.logo,.logo *{color:#222!important}
+.logo span{color:#d63384!important}
+.hero,.hero *{color:#222!important}
+.hero .pill,.hero .pill *{color:#fff!important}
+.title,.title *{color:#222!important}
+.ai,.ai *{color:#222!important}
+.card,.card *{color:#222}
+.type,.old{color:#777!important}
+.rate{color:#087f5b!important}
+.stButton>button,.stButton>button *{color:#222!important}
+.stRadio label,.stRadio label *{color:#222!important}
+[data-testid="stChatMessage"], [data-testid="stChatMessage"] *{color:#222!important}
+[data-testid="stChatInput"] textarea{color:#fff!important;background:#272932!important;caret-color:#fff!important}
+[data-testid="stChatInput"] textarea::placeholder{color:#d5d5d5!important;opacity:1!important}
+[data-testid="stChatInput"]{color:#fff!important}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- HELPERS ----------
+def product(pid):
+    return next((p for p in PRODUCTS if p["id"] == pid), None)
+
+def catalog_text():
+    return "\n".join(
+        f"{p['name']} | {p['cat']} | ₹{p['price']} | {p['type']}"
+        for p in PRODUCTS
     )
 
-    if match:
-        budget = int(match.group(1))
+def ask_nova(question):
+    client = get_client()
+    if client:
+        prompt = f"""You are NOVA AI, a friendly Indian fashion and beauty shopping assistant.
+Answer briefly and naturally. Use ₹ for prices. Recommend only products in this catalog.
+Do not invent products. For unclear requests, ask one short question.
+Catalog:
+{catalog_text()}
 
-
-    result = []
-
-
-    for product in PRODUCTS:
-
-        searchable = (
-            product["name"]
-            + " "
-            + product["category"]
-            + " "
-            + product["type"]
-        ).lower()
-
-
-        matches = False
-
-
-        if "kurta" in q and "kurta" in searchable:
-            matches = True
-
-        elif "shirt" in q and "shirt" in searchable:
-            matches = True
-
-        elif "men" in q and product["category"] == "Men":
-            matches = True
-
-        elif "women" in q and product["category"] == "Women":
-            matches = True
-
-        elif "beauty" in q and product["category"] == "Beauty":
-            matches = True
-
-        elif "makeup" in q and product["type"] == "Makeup":
-            matches = True
-
-        elif "skincare" in q and product["type"] == "Skincare":
-            matches = True
-
-
-        if budget and product["price"] > budget:
-            matches = False
-
-
-        if matches:
-            result.append(product)
-
-
-    return result[:4]
-
-
-for i, q in enumerate(questions):
-
-    with quick[i]:
-
-        if st.button(
-            q,
-            key=f"quick_{i}",
-            use_container_width=True
-        ):
-
-            products = find_products(q)
-
-            st.session_state.messages.append(
-                {
-                    "question": q,
-                    "products": products
-                }
+Customer: {question}"""
+        try:
+            r = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
             )
+            if r and r.text:
+                return r.text
+        except Exception:
+            pass
 
+    q = question.lower()
+    if "wedding" in q or "party" in q:
+        return "✨ For a wedding look: **Floral Printed Kurta Set ₹1,499**, **Minimal Gold Necklace ₹699** and **Soft Blush Makeup Palette ₹899**."
+    if "makeup" in q:
+        return "💄 Try the **Soft Blush Makeup Palette ₹899** with **Velvet Matte Lipstick ₹599** for a simple soft-glam look."
+    if "skin" in q:
+        return "🧴 The **Hydrating Glow Serum ₹799** is a catalog option. For specific skin concerns, consider professional advice."
+    if "men" in q:
+        return "👔 Try the **Classic Men's Casual Shirt ₹999** with **Relaxed Fit Denim Jeans ₹1,299** and **Everyday Sneakers ₹1,299**."
+    if "under" in q or "budget" in q:
+        return "💰 Tell me your budget and occasion, for example: **wedding outfit under ₹3000**."
+    return "✨ I can help with fashion, makeup, skincare, accessories, footwear and budget shopping. What are you looking for?"
 
-# ============================================================
-# CHAT INPUT
-# ============================================================
+# ---------- HEADER ----------
+st.markdown("""
+<div class="top">
+  <div class="logo">NOVA<span>AI</span></div>
+  <div class="sub">Fashion • Beauty • Lifestyle • AI Styling</div>
+</div>
+<div class="hero">
+  <span class="pill">NOVA AI STYLE STUDIO</span>
+  <h1>Your style.<br>Your beauty.<br>Your NOVA. ✨</h1>
+  <p>Your personal assistant for fashion, beauty and shopping.</p>
+</div>
+""", unsafe_allow_html=True)
 
-question = st.chat_input(
-    "What are you looking for?"
-)
+# ---------- QUICK CHAT ----------
+st.markdown('<div class="title">What can NOVA help with?</div>', unsafe_allow_html=True)
+quick = ["👗 Wedding outfit","💄 Makeup","🧴 Skincare","👔 Men's fashion","👜 Accessories","💰 Budget"]
+cols = st.columns(6)
 
+for i, text in enumerate(quick):
+    with cols[i]:
+        if st.button(text, key=f"q{i}", use_container_width=True):
+            q = text.split(" ",1)[1]
+            st.session_state.messages.append({"role":"user","content":q})
+            st.session_state.messages.append({"role":"assistant","content":ask_nova(q)})
+            st.rerun()
+
+# ---------- CHAT ----------
+st.markdown("""
+<div class="ai">
+<div class="title" style="margin:0">✨ Ask NOVA</div>
+<p style="color:#666">Get quick recommendations for your next look.</p>
+</div>
+""", unsafe_allow_html=True)
+
+for m in st.session_state.messages:
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
+
+question = st.chat_input("Ask NOVA... e.g. Suggest a wedding outfit under ₹3000")
 
 if question:
+    st.session_state.messages.append({"role":"user","content":question})
+    with st.chat_message("user"):
+        st.markdown(question)
+    with st.chat_message("assistant"):
+        with st.spinner("NOVA is styling your look..."):
+            answer = ask_nova(question)
+        st.markdown(answer)
+    st.session_state.messages.append({"role":"assistant","content":answer})
 
-    products = find_products(
-        question
-    )
+# ---------- PRODUCTS ----------
+st.markdown('<div class="title">✨ Explore Products</div>', unsafe_allow_html=True)
 
-    st.session_state.messages.append(
-        {
-            "question": question,
-            "products": products
-        }
-    )
+categories = ["All","Women","Men","Beauty","Accessories","Footwear"]
+cat = st.radio("Category", categories, horizontal=True, label_visibility="collapsed")
+items = PRODUCTS if cat == "All" else [p for p in PRODUCTS if p["cat"] == cat]
 
+for start in range(0, len(items), 4):
+    cols = st.columns(4)
+    for col, p in zip(cols, items[start:start+4]):
+        with col:
+            off = round((p["old"]-p["price"])*100/p["old"])
+            st.markdown(f"""
+            <div class="card">
+              <img src="{p['image']}">
+              <div class="body">
+                <div class="name">{p['name']}</div>
+                <div class="type">{p['type']}</div>
+                <div class="price">₹{p['price']}
+                  <span class="old">₹{p['old']}</span>
+                  <span style="color:#087f5b;font-size:12px">{off}% OFF</span>
+                </div>
+                <div class="rate">★ {p['rating']} • Popular choice</div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-# ============================================================
-# RESULTS
-# ============================================================
+            c1,c2 = st.columns(2)
+            with c1:
+                if st.button("🛍 Add", key=f"add{p['id']}", use_container_width=True):
+                    if p["id"] not in st.session_state.cart:
+                        st.session_state.cart.append(p["id"])
+                    st.toast("Added to cart")
+            with c2:
+                heart = "❤️" if p["id"] in st.session_state.wish else "♡"
+                if st.button(heart, key=f"wish{p['id']}", use_container_width=True):
+                    if p["id"] in st.session_state.wish:
+                        st.session_state.wish.remove(p["id"])
+                    else:
+                        st.session_state.wish.append(p["id"])
+                    st.rerun()
 
-for item in st.session_state.messages:
+# ---------- CART ----------
+st.markdown('<div class="title">🛍 Shopping Space</div>', unsafe_allow_html=True)
+a,b = st.columns(2)
 
-    st.markdown(
-        f"### You searched for: `{item['question']}`"
-    )
-
-
-    products = item["products"]
-
-
-    if products:
-
-        cols = st.columns(
-            min(4, len(products))
-        )
-
-
-        for i, product in enumerate(products):
-
-            with cols[i]:
-
-                st.markdown(
-                    '<div class="product-card">',
-                    unsafe_allow_html=True
-                )
-
-
-                try:
-
-                    st.image(
-                        product["image"],
-                        use_container_width=True
-                    )
-
-                except Exception:
-
-                    st.info(
-                        "Image unavailable"
-                    )
-
-
-                st.markdown(
-                    f"""
-                    <div class="product-name">
-                        {product['name']}
-                    </div>
-
-                    <div class="product-type">
-                        {product['category']} •
-                        {product['type']}
-                    </div>
-
-                    <div class="price">
-                        ₹{product['price']:,}
-                    </div>
-
-                    <div class="rating">
-                        ⭐ {product['rating']}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-
-                if st.button(
-                    "Add to Bag",
-                    key=f"result_{product['id']}_{item['question']}",
-                    use_container_width=True
-                ):
-
-                    if product["id"] not in st.session_state.cart:
-
-                        st.session_state.cart.append(
-                            product["id"]
-                        )
-
-                    st.toast(
-                        "Added to bag 🛍️"
-                    )
-
-
-                st.markdown(
-                    "</div>",
-                    unsafe_allow_html=True
-                )
-
+with a:
+    st.subheader("Your Cart")
+    cart = [product(i) for i in st.session_state.cart]
+    if cart:
+        for p in cart: st.write(f"**{p['name']}** — ₹{p['price']}")
+        st.write(f"**Total: ₹{sum(p['price'] for p in cart):,}**")
     else:
+        st.info("Your cart is empty.")
 
-        st.info(
-            "No matching products found. "
-            "Try another category or budget."
-        )
+with b:
+    st.subheader("❤️ Wishlist")
+    wish = [product(i) for i in st.session_state.wish]
+    if wish:
+        for p in wish: st.write(f"**{p['name']}** — ₹{p['price']}")
+    else:
+        st.info("Your wishlist is empty.")
 
-
-# ============================================================
-# CART SUMMARY
-# ============================================================
-
-if st.session_state.cart:
-
-    st.divider()
-
-    st.markdown(
-        f"### 🛍️ Your Bag — "
-        f"{len(st.session_state.cart)} item(s)"
-    )
-
-
-    total = 0
-
-
-    for pid in st.session_state.cart:
-
-        product = next(
-            (
-                p for p in PRODUCTS
-                if p["id"] == pid
-            ),
-            None
-        )
-
-        if product:
-
-            total += product["price"]
-
-            st.write(
-                f"**{product['name']}** — "
-                f"₹{product['price']:,}"
-            )
-
-
-    st.success(
-        f"Total: ₹{total:,}"
-    )
-
-
-# ============================================================
-# FOOTER
-# ============================================================
-
-st.markdown(
-    """
-    <div class="footer">
-        NOVA AI • Fashion & Beauty Assistant
-        <br>
-        Discover your style. Shop smarter.
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# ---------- FOOTER ----------
+st.markdown("""
+<div style="margin-top:45px;background:#171717;color:white;padding:28px;
+border-radius:18px;text-align:center">
+  <div style="font:700 28px 'Playfair Display'">NOVA<span style="color:#ff72ad">AI</span></div>
+  <div style="color:#bbb;margin-top:5px">Fashion • Beauty • Lifestyle • AI Styling</div>
+</div>
+""", unsafe_allow_html=True)
