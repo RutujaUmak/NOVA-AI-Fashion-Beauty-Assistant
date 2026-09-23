@@ -1,4 +1,4 @@
-```python
+
 import os
 import re
 import streamlit as st
@@ -1907,4 +1907,4 @@ st.divider()
 st.caption(
     "NOVA AI • Fashion • Beauty • Smart Shopping"
 )
-```
+
