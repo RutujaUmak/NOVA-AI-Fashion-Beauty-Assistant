@@ -1,44 +1,24 @@
-
+import streamlit as st
 import os
 import re
-import streamlit as st
-
-# ============================================================
-# OPTIONAL GEMINI
-# ============================================================
-
-try:
-    from google import genai
-except Exception:
-    genai = None
-
 
 # ============================================================
 # PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
-    page_title="NOVA AI | Fashion & Beauty",
+    page_title="NOVA | Fashion & Beauty",
     page_icon="✨",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed"
 )
 
 
 # ============================================================
-# PRODUCT CATALOG
-# IMPORTANT:
-# Put your verified images inside the assets folder.
-# Example:
-# assets/floral_kurta.jpg
-# assets/pastel_shirt.jpg
+# PRODUCT DATA
 # ============================================================
 
 PRODUCTS = [
-
-    # =========================
-    # WOMEN
-    # =========================
 
     {
         "id": 1,
@@ -46,9 +26,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Ethnic Wear",
         "price": 1499,
-        "mrp": 2499,
+        "old": 2499,
         "rating": 4.5,
-        "image": "assets/floral_kurta.jpg",
+        "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -57,9 +37,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Shirt",
         "price": 899,
-        "mrp": 1599,
+        "old": 1599,
         "rating": 4.3,
-        "image": "assets/pastel_shirt.jpg",
+        "image": "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -68,9 +48,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Jacket",
         "price": 1299,
-        "mrp": 2199,
+        "old": 2199,
         "rating": 4.4,
-        "image": "assets/womens_denim_jacket.jpg",
+        "image": "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -79,9 +59,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Dress",
         "price": 1899,
-        "mrp": 2999,
+        "old": 2999,
         "rating": 4.6,
-        "image": "assets/party_dress.jpg",
+        "image": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -90,9 +70,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Ethnic Wear",
         "price": 799,
-        "mrp": 1299,
+        "old": 1299,
         "rating": 4.2,
-        "image": "assets/cotton_kurta.jpg",
+        "image": "https://images.unsplash.com/photo-1583391733981-8498403d1f96?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -101,9 +81,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Jeans",
         "price": 1199,
-        "mrp": 1999,
+        "old": 1999,
         "rating": 4.5,
-        "image": "assets/womens_blue_jeans.jpg",
+        "image": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -112,9 +92,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Top",
         "price": 699,
-        "mrp": 1199,
+        "old": 1199,
         "rating": 4.3,
-        "image": "assets/floral_top.jpg",
+        "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -123,9 +103,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Ethnic Wear",
         "price": 2199,
-        "mrp": 3499,
+        "old": 3499,
         "rating": 4.7,
-        "image": "assets/anarkali.jpg",
+        "image": "https://images.unsplash.com/photo-1610189012906-3c9c9f9e8d9d?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -134,9 +114,9 @@ PRODUCTS = [
         "category": "Women",
         "type": "Formal Wear",
         "price": 1699,
-        "mrp": 2599,
+        "old": 2599,
         "rating": 4.4,
-        "image": "assets/womens_black_blazer.jpg",
+        "image": "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -145,15 +125,12 @@ PRODUCTS = [
         "category": "Women",
         "type": "Dress",
         "price": 999,
-        "mrp": 1699,
+        "old": 1699,
         "rating": 4.5,
-        "image": "assets/summer_dress.jpg",
+        "image": "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=85"
     },
 
-
-    # =========================
     # MEN
-    # =========================
 
     {
         "id": 11,
@@ -161,9 +138,9 @@ PRODUCTS = [
         "category": "Men",
         "type": "Shirt",
         "price": 999,
-        "mrp": 1799,
+        "old": 1799,
         "rating": 4.4,
-        "image": "assets/mens_casual_shirt.jpg",
+        "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -172,9 +149,9 @@ PRODUCTS = [
         "category": "Men",
         "type": "Jeans",
         "price": 1299,
-        "mrp": 2299,
+        "old": 2299,
         "rating": 4.3,
-        "image": "assets/mens_jeans.jpg",
+        "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -183,9 +160,9 @@ PRODUCTS = [
         "category": "Men",
         "type": "T-Shirt",
         "price": 599,
-        "mrp": 999,
+        "old": 999,
         "rating": 4.4,
-        "image": "assets/mens_black_tshirt.jpg",
+        "image": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -194,9 +171,9 @@ PRODUCTS = [
         "category": "Men",
         "type": "Formal Wear",
         "price": 899,
-        "mrp": 1499,
+        "old": 1499,
         "rating": 4.5,
-        "image": "assets/mens_formal_shirt.jpg",
+        "image": "https://images.unsplash.com/photo-1603252110481-7ba873bf42ab?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -205,9 +182,9 @@ PRODUCTS = [
         "category": "Men",
         "type": "Trousers",
         "price": 1199,
-        "mrp": 1999,
+        "old": 1999,
         "rating": 4.3,
-        "image": "assets/slim_chinos.jpg",
+        "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -216,9 +193,9 @@ PRODUCTS = [
         "category": "Men",
         "type": "Jacket",
         "price": 1499,
-        "mrp": 2499,
+        "old": 2499,
         "rating": 4.6,
-        "image": "assets/mens_denim_jacket.jpg",
+        "image": "https://images.unsplash.com/photo-1495105787522-5334e3ffa0ef?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -227,9 +204,9 @@ PRODUCTS = [
         "category": "Men",
         "type": "T-Shirt",
         "price": 799,
-        "mrp": 1299,
+        "old": 1299,
         "rating": 4.5,
-        "image": "assets/mens_polo.jpg",
+        "image": "https://images.unsplash.com/photo-1586363104868-3a5e2ab60d99?auto=format&fit=crop&w=800&q=85"
     },
 
     {
@@ -238,378 +215,142 @@ PRODUCTS = [
         "category": "Men",
         "type": "Hoodie",
         "price": 1099,
-        "mrp": 1899,
+        "old": 1899,
         "rating": 4.4,
-        "image": "assets/mens_hoodie.jpg",
+        "image": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=800&q=85"
     },
+
+    # BEAUTY
 
     {
         "id": 19,
-        "name": "Men's Linen Shirt",
-        "category": "Men",
-        "type": "Shirt",
-        "price": 1199,
-        "mrp": 1999,
-        "rating": 4.6,
-        "image": "assets/mens_linen_shirt.jpg",
-    },
-
-    {
-        "id": 20,
-        "name": "Men's Premium Blazer",
-        "category": "Men",
-        "type": "Formal Wear",
-        "price": 2499,
-        "mrp": 3999,
-        "rating": 4.8,
-        "image": "assets/mens_blazer.jpg",
-    },
-
-
-    # =========================
-    # BEAUTY
-    # =========================
-
-    {
-        "id": 21,
         "name": "Hydrating Glow Serum",
         "category": "Beauty",
         "type": "Skincare",
         "price": 799,
-        "mrp": 1299,
+        "old": 1299,
         "rating": 4.7,
-        "image": "assets/glow_serum.jpg",
+        "image": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=85"
     },
 
     {
-        "id": 22,
+        "id": 20,
         "name": "Velvet Matte Lipstick",
         "category": "Beauty",
         "type": "Makeup",
         "price": 599,
-        "mrp": 899,
+        "old": 899,
         "rating": 4.5,
-        "image": "assets/matte_lipstick.jpg",
+        "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=800&q=85"
     },
 
     {
-        "id": 23,
-        "name": "Soft Blush Makeup Palette",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 899,
-        "mrp": 1399,
-        "rating": 4.6,
-        "image": "assets/blush_palette.jpg",
-    },
-
-    {
-        "id": 24,
+        "id": 21,
         "name": "Vitamin C Face Serum",
         "category": "Beauty",
         "type": "Skincare",
         "price": 699,
-        "mrp": 1199,
+        "old": 1199,
         "rating": 4.5,
-        "image": "assets/vitamin_c_serum.jpg",
+        "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=85"
     },
 
     {
-        "id": 25,
-        "name": "Hydrating Face Moisturizer",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 549,
-        "mrp": 899,
-        "rating": 4.4,
-        "image": "assets/moisturizer.jpg",
-    },
-
-    {
-        "id": 26,
-        "name": "Waterproof Mascara",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 499,
-        "mrp": 799,
-        "rating": 4.3,
-        "image": "assets/mascara.jpg",
-    },
-
-    {
-        "id": 27,
-        "name": "Liquid Foundation",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 749,
-        "mrp": 1199,
-        "rating": 4.5,
-        "image": "assets/foundation.jpg",
-    },
-
-    {
-        "id": 28,
-        "name": "Rose Face Toner",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 399,
-        "mrp": 699,
-        "rating": 4.2,
-        "image": "assets/rose_toner.jpg",
-    },
-
-    {
-        "id": 29,
-        "name": "Nude Lip Gloss",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 349,
-        "mrp": 599,
-        "rating": 4.3,
-        "image": "assets/lip_gloss.jpg",
-    },
-
-    {
-        "id": 30,
+        "id": 22,
         "name": "Daily Sunscreen SPF 50",
         "category": "Beauty",
         "type": "Skincare",
         "price": 599,
-        "mrp": 899,
+        "old": 899,
         "rating": 4.6,
-        "image": "assets/sunscreen.jpg",
+        "image": "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=800&q=85"
     },
 
-
-    # =========================
     # ACCESSORIES
-    # =========================
 
     {
-        "id": 31,
+        "id": 23,
         "name": "Minimal Gold Necklace",
         "category": "Accessories",
         "type": "Jewellery",
         "price": 699,
-        "mrp": 1199,
+        "old": 1199,
         "rating": 4.6,
-        "image": "assets/gold_necklace.jpg",
+        "image": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=85"
     },
 
     {
-        "id": 32,
+        "id": 24,
         "name": "Structured Women's Handbag",
         "category": "Accessories",
         "type": "Bags",
         "price": 1199,
-        "mrp": 1999,
+        "old": 1999,
         "rating": 4.6,
-        "image": "assets/womens_handbag.jpg",
+        "image": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=85"
     },
 
     {
-        "id": 33,
-        "name": "Classic Leather Wallet",
-        "category": "Accessories",
-        "type": "Wallet",
-        "price": 499,
-        "mrp": 899,
-        "rating": 4.4,
-        "image": "assets/leather_wallet.jpg",
-    },
-
-    {
-        "id": 34,
-        "name": "Elegant Pearl Earrings",
-        "category": "Accessories",
-        "type": "Jewellery",
-        "price": 599,
-        "mrp": 999,
-        "rating": 4.5,
-        "image": "assets/pearl_earrings.jpg",
-    },
-
-    {
-        "id": 35,
-        "name": "Women's Fashion Watch",
-        "category": "Accessories",
-        "type": "Watch",
-        "price": 1299,
-        "mrp": 2199,
-        "rating": 4.6,
-        "image": "assets/womens_watch.jpg",
-    },
-
-    {
-        "id": 36,
-        "name": "Men's Classic Watch",
-        "category": "Accessories",
-        "type": "Watch",
-        "price": 1499,
-        "mrp": 2499,
-        "rating": 4.7,
-        "image": "assets/mens_watch.jpg",
-    },
-
-    {
-        "id": 37,
+        "id": 25,
         "name": "Fashion Sunglasses",
         "category": "Accessories",
         "type": "Sunglasses",
         "price": 399,
-        "mrp": 699,
+        "old": 699,
         "rating": 4.3,
-        "image": "assets/sunglasses.jpg",
+        "image": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=800&q=85"
     },
 
-    {
-        "id": 38,
-        "name": "Leather Crossbody Bag",
-        "category": "Accessories",
-        "type": "Bags",
-        "price": 999,
-        "mrp": 1699,
-        "rating": 4.5,
-        "image": "assets/crossbody_bag.jpg",
-    },
-
-    {
-        "id": 39,
-        "name": "Statement Bracelet",
-        "category": "Accessories",
-        "type": "Jewellery",
-        "price": 449,
-        "mrp": 799,
-        "rating": 4.2,
-        "image": "assets/bracelet.jpg",
-    },
-
-    {
-        "id": 40,
-        "name": "Classic Leather Belt",
-        "category": "Accessories",
-        "type": "Belt",
-        "price": 599,
-        "mrp": 999,
-        "rating": 4.4,
-        "image": "assets/leather_belt.jpg",
-    },
-
-
-    # =========================
     # FOOTWEAR
-    # =========================
 
     {
-        "id": 41,
+        "id": 26,
         "name": "Everyday Sneakers",
         "category": "Footwear",
         "type": "Shoes",
         "price": 1299,
-        "mrp": 2199,
+        "old": 2199,
         "rating": 4.4,
-        "image": "assets/everyday_sneakers.jpg",
+        "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85"
     },
 
     {
-        "id": 42,
+        "id": 27,
         "name": "Women's Casual Sneakers",
         "category": "Footwear",
         "type": "Shoes",
         "price": 999,
-        "mrp": 1699,
+        "old": 1699,
         "rating": 4.5,
-        "image": "assets/womens_sneakers.jpg",
+        "image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=85"
     },
 
     {
-        "id": 43,
+        "id": 28,
         "name": "Men's Running Shoes",
         "category": "Footwear",
         "type": "Sports Shoes",
         "price": 1599,
-        "mrp": 2599,
+        "old": 2599,
         "rating": 4.7,
-        "image": "assets/mens_running_shoes.jpg",
+        "image": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=85"
     },
 
-    {
-        "id": 44,
-        "name": "Women's Flat Sandals",
-        "category": "Footwear",
-        "type": "Sandals",
-        "price": 499,
-        "mrp": 899,
-        "rating": 4.3,
-        "image": "assets/flat_sandals.jpg",
-    },
-
-    {
-        "id": 45,
-        "name": "Men's Casual Loafers",
-        "category": "Footwear",
-        "type": "Loafers",
-        "price": 1099,
-        "mrp": 1799,
-        "rating": 4.5,
-        "image": "assets/mens_loafers.jpg",
-    },
-
-    {
-        "id": 46,
-        "name": "Women's Heeled Sandals",
-        "category": "Footwear",
-        "type": "Heels",
-        "price": 899,
-        "mrp": 1499,
-        "rating": 4.4,
-        "image": "assets/heeled_sandals.jpg",
-    },
-
-    {
-        "id": 47,
-        "name": "Classic White Sneakers",
-        "category": "Footwear",
-        "type": "Shoes",
-        "price": 1199,
-        "mrp": 1999,
-        "rating": 4.6,
-        "image": "assets/white_sneakers.jpg",
-    },
-
-    {
-        "id": 48,
-        "name": "Women's Ballet Flats",
-        "category": "Footwear",
-        "type": "Flats",
-        "price": 699,
-        "mrp": 1099,
-        "rating": 4.3,
-        "image": "assets/ballet_flats.jpg",
-    },
-
-    {
-        "id": 49,
-        "name": "Men's Sports Sneakers",
-        "category": "Footwear",
-        "type": "Sports Shoes",
-        "price": 1399,
-        "mrp": 2299,
-        "rating": 4.5,
-        "image": "assets/mens_sports_sneakers.jpg",
-    },
-
-    {
-        "id": 50,
-        "name": "Premium Party Heels",
-        "category": "Footwear",
-        "type": "Heels",
-        "price": 1499,
-        "mrp": 2499,
-        "rating": 4.7,
-        "image": "assets/party_heels.jpg",
-    },
 ]
+
+
+# ============================================================
+# SESSION STATE
+# ============================================================
+
+if "cart" not in st.session_state:
+    st.session_state.cart = []
+
+if "wishlist" not in st.session_state:
+    st.session_state.wishlist = []
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 
 # ============================================================
@@ -620,883 +361,448 @@ st.markdown(
     """
     <style>
 
-    /* Main application */
+    /* GLOBAL */
 
     .stApp {
-        background: #fafafa;
+        background: #f8f8f8;
     }
 
     .block-container {
-        max-width: 1150px;
-        padding-top: 1.5rem;
-        padding-bottom: 5rem;
+        max-width: 1250px;
+        padding-top: 1rem;
+        padding-bottom: 4rem;
     }
 
 
-    /* Header */
+    /* NAVBAR */
 
-    .nova-logo {
-        font-size: 34px;
+    .navbar {
+        background: white;
+        padding: 16px 25px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 22px;
+        border: 1px solid #eeeeee;
+    }
+
+    .brand {
+        font-size: 28px;
         font-weight: 800;
         letter-spacing: -1px;
     }
 
-    .nova-pink {
+    .brand span {
         color: #e91e63;
     }
 
-    .nova-subtitle {
-        color: #777;
+    .navtext {
+        color: #666;
         font-size: 14px;
-        margin-top: -8px;
-        margin-bottom: 25px;
     }
 
 
-    /* Welcome */
+    /* HERO */
 
-    .welcome {
+    .hero {
+        background:
+        linear-gradient(
+            90deg,
+            rgba(20,20,20,.90),
+            rgba(20,20,20,.35)
+        ),
+        url("https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1800&q=90");
+
+        background-size: cover;
+        background-position: center;
+
+        min-height: 380px;
+
+        border-radius: 25px;
+
+        padding: 70px 60px;
+
+        display: flex;
+        align-items: center;
+
+        color: white;
+
+        margin-bottom: 30px;
+    }
+
+    .hero h1 {
+        font-size: 48px;
+        line-height: 1.05;
+        margin-bottom: 15px;
+    }
+
+    .hero p {
+        font-size: 17px;
+        color: #eeeeee;
+        max-width: 520px;
+    }
+
+    .hero-tag {
+        display: inline-block;
+        background: #e91e63;
+        padding: 7px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        margin-bottom: 15px;
+    }
+
+
+    /* SECTION */
+
+    .section-title {
+        font-size: 26px;
+        font-weight: 800;
+        margin-top: 30px;
+        margin-bottom: 15px;
+    }
+
+
+    /* CATEGORY */
+
+    .category-card {
+        background: white;
+        border-radius: 18px;
+        padding: 22px;
         text-align: center;
-        padding: 55px 20px 35px 20px;
+        border: 1px solid #eeeeee;
+        transition: .2s;
     }
 
-    .welcome h1 {
-        font-size: 40px;
-        margin-bottom: 10px;
+    .category-icon {
+        font-size: 34px;
+        margin-bottom: 8px;
     }
 
-    .welcome p {
-        color: #777;
-        font-size: 16px;
+    .category-name {
+        font-weight: 700;
+    }
+
+    .category-sub {
+        font-size: 12px;
+        color: #888;
     }
 
 
-    /* Product card */
+    /* PRODUCTS */
 
     .product-card {
-        border: 1px solid #eeeeee;
-        border-radius: 16px;
-        padding: 10px;
         background: white;
-        margin-bottom: 10px;
+        border-radius: 18px;
+        padding: 10px;
+        border: 1px solid #eeeeee;
+        margin-bottom: 15px;
     }
 
-    .product-title {
+    .product-image {
+        width: 100%;
+        height: 280px;
+        object-fit: cover;
+        border-radius: 14px;
+    }
+
+    .product-name {
         font-size: 15px;
         font-weight: 700;
-        min-height: 42px;
-        margin-top: 8px;
+        margin-top: 10px;
     }
 
     .product-type {
-        color: #777;
         font-size: 12px;
+        color: #888;
     }
 
-    .product-price {
+    .price {
         font-size: 18px;
         font-weight: 800;
         margin-top: 5px;
     }
 
-    .product-mrp {
+    .old-price {
         color: #999;
         text-decoration: line-through;
         font-size: 12px;
+        margin-left: 5px;
     }
 
-    .product-rating {
+    .rating {
         color: #087f5b;
         font-size: 13px;
-        font-weight: 600;
+        margin-top: 5px;
     }
 
 
-    /* Chat */
+    /* ASSISTANT */
 
-    [data-testid="stChatMessage"] {
-        border-radius: 16px;
+    .assistant-box {
+        background: white;
+        border: 1px solid #eeeeee;
+        border-radius: 22px;
+        padding: 30px;
+        margin-top: 35px;
     }
 
-    [data-testid="stChatInput"] {
-        border-radius: 18px;
+    .assistant-title {
+        font-size: 28px;
+        font-weight: 800;
     }
 
-    [data-testid="stChatInput"] textarea {
-        background: white !important;
-        color: #222 !important;
+    .assistant-sub {
+        color: #777;
+        margin-bottom: 20px;
     }
 
 
-    /* Sidebar */
+    /* FOOTER */
 
-    section[data-testid="stSidebar"] {
-        background: #ffffff;
+    .footer {
+        text-align: center;
+        color: #999;
+        padding: 40px;
+        font-size: 13px;
     }
 
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 
 # ============================================================
-# SESSION STATE
+# NAVBAR
 # ============================================================
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+st.markdown(
+    """
+    <div class="navbar">
 
-if "cart" not in st.session_state:
-    st.session_state.cart = []
+        <div class="brand">
+            NOVA<span>AI</span>
+        </div>
 
-if "wishlist" not in st.session_state:
-    st.session_state.wishlist = []
+        <div class="navtext">
+            Women &nbsp;&nbsp; Men &nbsp;&nbsp; Beauty
+            &nbsp;&nbsp; Accessories &nbsp;&nbsp; Footwear
+        </div>
+
+        <div class="navtext">
+            🛍️ Cart
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # ============================================================
-# HELPERS
+# HERO
 # ============================================================
 
-def get_product(product_id):
-    return next(
-        (p for p in PRODUCTS if p["id"] == product_id),
-        None
-    )
+st.markdown(
+    """
+    <div class="hero">
+
+        <div>
+
+            <div class="hero-tag">
+                NEW SEASON
+            </div>
+
+            <h1>
+                Style that<br>
+                feels like you.
+            </h1>
+
+            <p>
+                Discover fashion, beauty and everyday
+                essentials with NOVA.
+            </p>
+
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
-def extract_budget(text):
+# ============================================================
+# CATEGORY SECTION
+# ============================================================
 
-    patterns = [
-        r"(?:under|below|within|upto|up to)\s*(?:₹|rs\.?|inr)?\s*(\d[\d,]*)",
-        r"(?:₹|rs\.?|inr)\s*(\d[\d,]*)",
-        r"budget\s*(?:of)?\s*(?:₹|rs\.?|inr)?\s*(\d[\d,]*)",
+st.markdown(
+    '<div class="section-title">Shop by Category</div>',
+    unsafe_allow_html=True
+)
+
+
+categories = [
+    ("👗", "Women", "Fashion & ethnic wear"),
+    ("👔", "Men", "Everyday essentials"),
+    ("💄", "Beauty", "Makeup & skincare"),
+    ("👜", "Accessories", "Complete your look"),
+    ("👟", "Footwear", "Shoes & sneakers"),
+]
+
+
+cols = st.columns(5)
+
+
+for i, (icon, name, sub) in enumerate(categories):
+
+    with cols[i]:
+
+        st.markdown(
+            f"""
+            <div class="category-card">
+
+                <div class="category-icon">
+                    {icon}
+                </div>
+
+                <div class="category-name">
+                    {name}
+                </div>
+
+                <div class="category-sub">
+                    {sub}
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+# ============================================================
+# FEATURED PRODUCTS
+# ============================================================
+
+st.markdown(
+    '<div class="section-title">Trending Now</div>',
+    unsafe_allow_html=True
+)
+
+
+featured = PRODUCTS[:8]
+
+
+for start in range(
+    0,
+    len(featured),
+    4
+):
+
+    row = featured[
+        start:start + 4
     ]
 
-    for pattern in patterns:
+    cols = st.columns(4)
 
-        match = re.search(pattern, text.lower())
 
-        if match:
-            return int(
-                match.group(1).replace(",", "")
-            )
+    for i, product in enumerate(row):
 
-    return None
-
-
-def detect_category(text):
-
-    q = text.lower()
-
-    if any(x in q for x in [
-        "makeup",
-        "lipstick",
-        "mascara",
-        "foundation",
-        "cosmetic",
-        "beauty",
-        "skincare",
-        "skin care",
-        "serum",
-        "moisturizer",
-        "sunscreen",
-        "toner",
-    ]):
-        return "Beauty"
-
-    if any(x in q for x in [
-        "men",
-        "mens",
-        "male",
-        "boy",
-    ]):
-        return "Men"
-
-    if any(x in q for x in [
-        "women",
-        "womens",
-        "woman",
-        "girl",
-        "ladies",
-    ]):
-        return "Women"
-
-    if any(x in q for x in [
-        "shoe",
-        "shoes",
-        "sneaker",
-        "sneakers",
-        "footwear",
-        "heel",
-        "heels",
-        "sandals",
-        "flats",
-        "loafers",
-    ]):
-        return "Footwear"
-
-    if any(x in q for x in [
-        "bag",
-        "jewellery",
-        "jewelry",
-        "necklace",
-        "watch",
-        "wallet",
-        "sunglasses",
-        "accessory",
-        "accessories",
-        "belt",
-        "bracelet",
-        "earrings",
-    ]):
-        return "Accessories"
-
-    return None
-
-
-def detect_type(text):
-
-    q = text.lower()
-
-    groups = {
-
-        "Makeup": [
-            "makeup",
-            "lipstick",
-            "mascara",
-            "foundation",
-            "lip gloss",
-            "blush",
-        ],
-
-        "Skincare": [
-            "skincare",
-            "skin care",
-            "serum",
-            "moisturizer",
-            "sunscreen",
-            "toner",
-        ],
-
-        "Shoes": [
-            "shoe",
-            "shoes",
-            "sneaker",
-            "sneakers",
-        ],
-
-        "Heels": [
-            "heel",
-            "heels",
-        ],
-
-        "Sandals": [
-            "sandal",
-            "sandals",
-        ],
-
-        "Jeans": [
-            "jeans",
-            "denim jeans",
-        ],
-
-        "Jacket": [
-            "jacket",
-        ],
-
-        "Dress": [
-            "dress",
-        ],
-
-        "Shirt": [
-            "shirt",
-        ],
-
-        "T-Shirt": [
-            "t-shirt",
-            "tshirt",
-            "t shirt",
-        ],
-
-        "Bags": [
-            "bag",
-            "handbag",
-        ],
-
-        "Jewellery": [
-            "jewellery",
-            "jewelry",
-            "necklace",
-            "earrings",
-            "bracelet",
-        ],
-
-        "Watch": [
-            "watch",
-        ],
-
-        "Ethnic Wear": [
-            "kurta",
-            "anarkali",
-            "ethnic",
-            "ethnic wear",
-        ],
-    }
-
-    for product_type, words in groups.items():
-
-        if any(word in q for word in words):
-            return product_type
-
-    return None
-
-
-# ============================================================
-# PRODUCT SEARCH
-# ============================================================
-
-def recommend_products(question):
-
-    q = question.lower()
-
-    budget = extract_budget(question)
-
-    category = detect_category(question)
-
-    product_type = detect_type(question)
-
-    candidates = PRODUCTS[:]
-
-
-    # Category filter
-
-    if category:
-
-        candidates = [
-            p for p in candidates
-            if p["category"] == category
-        ]
-
-
-    # Product type filter
-
-    if product_type:
-
-        type_matches = [
-            p for p in candidates
-            if product_type.lower()
-            in p["type"].lower()
-        ]
-
-        if type_matches:
-            candidates = type_matches
-
-
-    # Budget filter
-
-    if budget is not None:
-
-        candidates = [
-            p for p in candidates
-            if p["price"] <= budget
-        ]
-
-        if not candidates:
-            return []
-
-
-    # Cheapest
-
-    if any(word in q for word in [
-        "cheapest",
-        "lowest price",
-        "lowest priced",
-        "least expensive",
-        "most affordable",
-    ]):
-
-        return sorted(
-            candidates,
-            key=lambda p: (
-                p["price"],
-                -p["rating"]
-            )
-        )[:4]
-
-
-    # Highest rated
-
-    if any(word in q for word in [
-        "best rated",
-        "highest rated",
-        "top rated",
-        "highest rating",
-    ]):
-
-        return sorted(
-            candidates,
-            key=lambda p: (
-                -p["rating"],
-                p["price"]
-            )
-        )[:4]
-
-
-    # Keyword matching
-
-    words = re.findall(
-        r"[a-zA-Z]+",
-        q
-    )
-
-    stop_words = {
-        "show",
-        "me",
-        "the",
-        "a",
-        "an",
-        "for",
-        "under",
-        "below",
-        "within",
-        "please",
-        "find",
-        "want",
-        "need",
-        "give",
-        "some",
-        "product",
-        "products",
-        "best",
-        "good",
-        "can",
-        "you",
-        "something",
-        "what",
-        "is",
-        "are",
-        "with",
-        "price",
-        "cheap",
-    }
-
-    words = [
-        w for w in words
-        if len(w) >= 3
-        and w not in stop_words
-    ]
-
-
-    scored = []
-
-    for product in candidates:
-
-        searchable = (
-            f"{product['name']} "
-            f"{product['category']} "
-            f"{product['type']}"
-        ).lower()
-
-        score = sum(
-            1
-            for word in words
-            if word in searchable
-        )
-
-        scored.append(
-            (score, product)
-        )
-
-
-    matches = [
-        p
-        for score, p in scored
-        if score > 0
-    ]
-
-    if matches:
-
-        return sorted(
-            matches,
-            key=lambda p: (
-                -next(
-                    score
-                    for score, item
-                    in scored
-                    if item["id"] == p["id"]
-                ),
-                p["price"],
-            )
-        )[:4]
-
-
-    return sorted(
-        candidates,
-        key=lambda p: (
-            -p["rating"],
-            p["price"]
-        )
-    )[:4]
-
-
-# ============================================================
-# LOCAL AI RESPONSE
-# ============================================================
-
-def local_answer(question, products):
-
-    if not products:
-
-        budget = extract_budget(question)
-
-        if budget is not None:
-
-            return (
-                f"I couldn't find a matching product "
-                f"within ₹{budget:,}. "
-                "Try increasing your budget or changing "
-                "the category."
-            )
-
-        return (
-            "I couldn't find an exact match. "
-            "Try asking for dresses, kurtas, shirts, "
-            "makeup, skincare, shoes or bags."
-        )
-
-
-    q = question.lower()
-
-
-    if any(x in q for x in [
-        "cheapest",
-        "lowest price",
-        "most affordable",
-    ]):
-
-        p = min(
-            products,
-            key=lambda x: x["price"]
-        )
-
-        return (
-            f"The most affordable option is "
-            f"**{p['name']}** at **₹{p['price']:,}** "
-            f"with a **{p['rating']}★** rating."
-        )
-
-
-    if any(x in q for x in [
-        "best rated",
-        "highest rated",
-        "top rated",
-    ]):
-
-        p = max(
-            products,
-            key=lambda x: x["rating"]
-        )
-
-        return (
-            f"One of the highest-rated matching options "
-            f"is **{p['name']}** at **₹{p['price']:,}** "
-            f"with a **{p['rating']}★** rating."
-        )
-
-
-    names = ", ".join(
-        p["name"]
-        for p in products[:3]
-    )
-
-    return (
-        f"I found these options for you: "
-        f"**{names}**."
-    )
-
-
-# ============================================================
-# GEMINI
-# ============================================================
-
-def ask_ai(question, products):
-
-    api_key = st.secrets.get(
-        "GEMINI_API_KEY",
-        ""
-    )
-
-    if not api_key or genai is None:
-
-        return local_answer(
-            question,
-            products
-        )
-
-
-    selected_text = "\n".join(
-        f"- {p['name']} | "
-        f"{p['category']} | "
-        f"{p['type']} | "
-        f"₹{p['price']} | "
-        f"{p['rating']}★"
-        for p in products
-    )
-
-
-    catalog_text = "\n".join(
-        f"ID {p['id']} | "
-        f"{p['name']} | "
-        f"{p['category']} | "
-        f"{p['type']} | "
-        f"₹{p['price']} | "
-        f"{p['rating']}★"
-        for p in PRODUCTS
-    )
-
-
-    history = []
-
-    for msg in st.session_state.messages[-8:]:
-
-        history.append(
-            f"{msg['role']}: "
-            f"{msg['content']}"
-        )
-
-    history_text = "\n".join(history)
-
-
-    prompt = f"""
-You are NOVA AI, a fashion and beauty shopping assistant.
-
-PRODUCT CATALOG:
-{catalog_text}
-
-PRODUCTS SELECTED:
-{selected_text}
-
-RECENT CHAT:
-{history_text}
-
-CUSTOMER QUESTION:
-{question}
-
-RULES:
-
-1. Be natural and conversational.
-2. Help the customer find products.
-3. Use only products from the catalog.
-4. Never invent products.
-5. Never invent prices.
-6. Never invent ratings.
-7. Never invent discounts.
-8. Use Indian rupees.
-9. Keep responses short and useful.
-10. Do not output image URLs.
-11. When products are relevant, mention their names and prices.
-12. Do not claim an image shows something that is not in the product catalog.
-"""
-
-
-    try:
-
-        client = genai.Client(
-            api_key=api_key
-        )
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-        )
-
-        if response and response.text:
-
-            return response.text
-
-    except Exception:
-
-        pass
-
-
-    return local_answer(
-        question,
-        products
-    )
-
-
-# ============================================================
-# CART / WISHLIST
-# ============================================================
-
-def add_to_cart(product_id):
-
-    if product_id not in st.session_state.cart:
-
-        st.session_state.cart.append(
-            product_id
-        )
-
-        st.toast(
-            "Added to cart 🛍️"
-        )
-
-    else:
-
-        st.toast(
-            "Already in cart."
-        )
-
-
-def toggle_wishlist(product_id):
-
-    if product_id in st.session_state.wishlist:
-
-        st.session_state.wishlist.remove(
-            product_id
-        )
-
-        st.toast(
-            "Removed from wishlist."
-        )
-
-    else:
-
-        st.session_state.wishlist.append(
-            product_id
-        )
-
-        st.toast(
-            "Added to wishlist ❤️"
-        )
-
-
-# ============================================================
-# PRODUCT CARD
-# ============================================================
-
-def display_product(product, prefix):
-
-    image_path = product["image"]
-
-
-    # --------------------------------------------------------
-    # IMAGE CHECK
-    # --------------------------------------------------------
-
-    if os.path.exists(image_path):
-
-        st.image(
-            image_path,
-            use_container_width=True
-        )
-
-    else:
-
-        st.warning(
-            f"Image missing: {image_path}"
-        )
-
-
-    st.markdown(
-        f"""
-        <div class="product-title">
-            {product['name']}
-        </div>
-
-        <div class="product-type">
-            {product['category']} • {product['type']}
-        </div>
-
-        <div class="product-price">
-            ₹{product['price']:,}
-            <span class="product-mrp">
-                ₹{product['mrp']:,}
-            </span>
-        </div>
-
-        <div class="product-rating">
-            ⭐ {product['rating']}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-    c1, c2 = st.columns(2)
-
-
-    with c1:
-
-        if st.button(
-            "🛍 Add",
-            key=f"{prefix}_cart_{product['id']}",
-            use_container_width=True,
-        ):
-
-            add_to_cart(
-                product["id"]
-            )
-
-
-    with c2:
-
-        if product["id"] in st.session_state.wishlist:
-
-            icon = "❤️"
-
-        else:
-
-            icon = "♡"
-
-
-        if st.button(
-            icon,
-            key=f"{prefix}_wish_{product['id']}",
-            use_container_width=True,
-        ):
-
-            toggle_wishlist(
-                product["id"]
-            )
-
-            st.rerun()
-
-
-# ============================================================
-# PRODUCT DISPLAY
-# ============================================================
-
-def display_products(products, prefix):
-
-    if not products:
-        return
-
-
-    st.markdown(
-        "#### Recommended for you"
-    )
-
-
-    cols = st.columns(
-        min(len(products), 4)
-    )
-
-
-    for i, product in enumerate(products):
-
-        with cols[i % len(cols)]:
+        with cols[i]:
 
             st.markdown(
                 '<div class="product-card">',
                 unsafe_allow_html=True
             )
 
-            display_product(
-                product,
-                f"{prefix}_{i}"
+
+            # IMPORTANT:
+            # Direct URL image display
+
+            try:
+
+                st.image(
+                    product["image"],
+                    use_container_width=True
+                )
+
+            except Exception:
+
+                st.info(
+                    "Product image unavailable"
+                )
+
+
+            st.markdown(
+                f"""
+                <div class="product-name">
+                    {product['name']}
+                </div>
+
+                <div class="product-type">
+                    {product['category']} • {product['type']}
+                </div>
+
+                <div class="price">
+                    ₹{product['price']:,}
+
+                    <span class="old-price">
+                        ₹{product['old']:,}
+                    </span>
+                </div>
+
+                <div class="rating">
+                    ⭐ {product['rating']}
+                </div>
+                """,
+                unsafe_allow_html=True
             )
+
+
+            b1, b2 = st.columns(2)
+
+
+            with b1:
+
+                if st.button(
+                    "Add to Bag",
+                    key=f"add_{product['id']}",
+                    use_container_width=True
+                ):
+
+                    if product["id"] not in st.session_state.cart:
+
+                        st.session_state.cart.append(
+                            product["id"]
+                        )
+
+                    st.toast(
+                        "Added to bag 🛍️"
+                    )
+
+
+            with b2:
+
+                if st.button(
+                    "♡",
+                    key=f"wish_{product['id']}",
+                    use_container_width=True
+                ):
+
+                    if product["id"] not in st.session_state.wishlist:
+
+                        st.session_state.wishlist.append(
+                            product["id"]
+                        )
+
+                    else:
+
+                        st.session_state.wishlist.remove(
+                            product["id"]
+                        )
+
+                    st.rerun()
+
 
             st.markdown(
                 "</div>",
@@ -1505,216 +811,125 @@ def display_products(products, prefix):
 
 
 # ============================================================
-# SIDEBAR
-# ============================================================
-
-with st.sidebar:
-
-    st.markdown(
-        '<div class="nova-logo">NOVA<span class="nova-pink">AI</span></div>',
-        unsafe_allow_html=True
-    )
-
-    st.caption(
-        "Fashion • Beauty • Smart Shopping"
-    )
-
-
-    st.divider()
-
-
-    st.markdown("### 🛍️ Shopping")
-
-
-    category = st.selectbox(
-        "Browse category",
-        [
-            "All",
-            "Women",
-            "Men",
-            "Beauty",
-            "Accessories",
-            "Footwear",
-        ]
-    )
-
-
-    st.divider()
-
-
-    st.markdown("### Your shopping")
-
-
-    st.write(
-        f"🛒 Cart: **{len(st.session_state.cart)}**"
-    )
-
-    st.write(
-        f"❤️ Wishlist: **{len(st.session_state.wishlist)}**"
-    )
-
-
-    st.divider()
-
-
-    if st.button(
-        "🗑️ Clear Chat",
-        use_container_width=True
-    ):
-
-        st.session_state.messages = []
-
-        st.rerun()
-
-
-    st.divider()
-
-
-    st.markdown("### Try asking")
-
-
-    st.caption(
-        "• Show me kurtas under ₹1500\n\n"
-        "• Women's shirts under ₹1000\n\n"
-        "• Men's fashion under ₹1500\n\n"
-        "• Show me makeup\n\n"
-        "• Best rated skincare\n\n"
-        "• Show me shoes"
-    )
-
-
-# ============================================================
-# MAIN HEADER
+# NOVA SHOPPING ASSISTANT
 # ============================================================
 
 st.markdown(
-    '<div class="nova-logo">NOVA<span class="nova-pink">AI</span></div>',
-    unsafe_allow_html=True
-)
+    """
+    <div class="assistant-box">
 
-st.markdown(
-    '<div class="nova-subtitle">'
-    'Your personal fashion & beauty shopping assistant'
-    '</div>',
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# WELCOME SCREEN
-# ============================================================
-
-if not st.session_state.messages:
-
-    st.markdown(
-        """
-        <div class="welcome">
-
-        <h1>✨ What are you looking for?</h1>
-
-        <p>
-        Ask NOVA to discover fashion, beauty,
-        accessories and footwear.
-        </p>
-
+        <div class="assistant-title">
+            ✨ Ask NOVA
         </div>
-        """,
-        unsafe_allow_html=True
+
+        <div class="assistant-sub">
+            Tell me what you're shopping for.
+            I'll help you find something from the collection.
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# QUICK SEARCH
+# ============================================================
+
+quick = st.columns(4)
+
+
+questions = [
+    "Show me kurtas under ₹1500",
+    "Women's shirts",
+    "Men's fashion",
+    "Beauty under ₹800",
+]
+
+
+def find_products(query):
+
+    q = query.lower()
+
+    budget = None
+
+    match = re.search(
+        r"(?:under|below|upto|up to)\s*₹?(\d+)",
+        q
     )
 
-
-    quick_cols = st.columns(4)
-
-
-    quick_questions = [
-        "Women's ethnic wear",
-        "Women's shirts",
-        "Men's fashion",
-        "Beauty under ₹800",
-    ]
+    if match:
+        budget = int(match.group(1))
 
 
-    for i, question in enumerate(
-        quick_questions
-    ):
-
-        with quick_cols[i]:
-
-            if st.button(
-                question,
-                key=f"welcome_{i}",
-                use_container_width=True,
-            ):
-
-                st.session_state.messages.append(
-                    {
-                        "role": "user",
-                        "content": question,
-                        "products": [],
-                    }
-                )
-
-                products = recommend_products(
-                    question
-                )
-
-                answer = ask_ai(
-                    question,
-                    products
-                )
-
-                st.session_state.messages.append(
-                    {
-                        "role": "assistant",
-                        "content": answer,
-                        "products": [
-                            p["id"]
-                            for p in products
-                        ],
-                    }
-                )
-
-                st.rerun()
+    result = []
 
 
-# ============================================================
-# CHAT HISTORY
-# ============================================================
+    for product in PRODUCTS:
 
-for i, message in enumerate(
-    st.session_state.messages
-):
-
-    with st.chat_message(
-        message["role"]
-    ):
-
-        st.markdown(
-            message["content"]
-        )
+        searchable = (
+            product["name"]
+            + " "
+            + product["category"]
+            + " "
+            + product["type"]
+        ).lower()
 
 
-        product_ids = message.get(
-            "products",
-            []
-        )
+        matches = False
 
 
-        if product_ids:
+        if "kurta" in q and "kurta" in searchable:
+            matches = True
 
-            products = [
-                get_product(pid)
-                for pid in product_ids
-            ]
+        elif "shirt" in q and "shirt" in searchable:
+            matches = True
 
-            products = [
-                p for p in products
-                if p
-            ]
+        elif "men" in q and product["category"] == "Men":
+            matches = True
 
-            display_products(
-                products,
-                f"chat_{i}"
+        elif "women" in q and product["category"] == "Women":
+            matches = True
+
+        elif "beauty" in q and product["category"] == "Beauty":
+            matches = True
+
+        elif "makeup" in q and product["type"] == "Makeup":
+            matches = True
+
+        elif "skincare" in q and product["type"] == "Skincare":
+            matches = True
+
+
+        if budget and product["price"] > budget:
+            matches = False
+
+
+        if matches:
+            result.append(product)
+
+
+    return result[:4]
+
+
+for i, q in enumerate(questions):
+
+    with quick[i]:
+
+        if st.button(
+            q,
+            key=f"quick_{i}",
+            use_container_width=True
+        ):
+
+            products = find_products(q)
+
+            st.session_state.messages.append(
+                {
+                    "question": q,
+                    "products": products
+                }
             )
 
 
@@ -1723,89 +938,46 @@ for i, message in enumerate(
 # ============================================================
 
 question = st.chat_input(
-    "Ask NOVA about fashion, beauty or products..."
+    "What are you looking for?"
 )
 
 
 if question:
 
-    # User message
-
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": question,
-            "products": [],
-        }
-    )
-
-
-    # Find products
-
-    products = recommend_products(
+    products = find_products(
         question
     )
 
-
-    # AI response
-
-    answer = ask_ai(
-        question,
-        products
-    )
-
-
-    # Assistant message
-
     st.session_state.messages.append(
         {
-            "role": "assistant",
-            "content": answer,
-            "products": [
-                p["id"]
-                for p in products
-            ],
+            "question": question,
+            "products": products
         }
     )
 
 
-    st.rerun()
-
-
 # ============================================================
-# CATEGORY BROWSE
+# RESULTS
 # ============================================================
 
-if category != "All":
+for item in st.session_state.messages:
 
-    st.divider()
-
-    st.subheader(
-        f"Browse {category}"
+    st.markdown(
+        f"### You searched for: `{item['question']}`"
     )
 
 
-    visible_products = [
-        p
-        for p in PRODUCTS
-        if p["category"] == category
-    ]
+    products = item["products"]
 
 
-    for start in range(
-        0,
-        len(visible_products),
-        4
-    ):
+    if products:
 
-        row = visible_products[
-            start:start + 4
-        ]
-
-        cols = st.columns(4)
+        cols = st.columns(
+            min(4, len(products))
+        )
 
 
-        for i, product in enumerate(row):
+        for i, product in enumerate(products):
 
             with cols[i]:
 
@@ -1814,47 +986,104 @@ if category != "All":
                     unsafe_allow_html=True
                 )
 
-                display_product(
-                    product,
-                    f"browse_{category}_{start}_{i}"
+
+                try:
+
+                    st.image(
+                        product["image"],
+                        use_container_width=True
+                    )
+
+                except Exception:
+
+                    st.info(
+                        "Image unavailable"
+                    )
+
+
+                st.markdown(
+                    f"""
+                    <div class="product-name">
+                        {product['name']}
+                    </div>
+
+                    <div class="product-type">
+                        {product['category']} •
+                        {product['type']}
+                    </div>
+
+                    <div class="price">
+                        ₹{product['price']:,}
+                    </div>
+
+                    <div class="rating">
+                        ⭐ {product['rating']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
+
+
+                if st.button(
+                    "Add to Bag",
+                    key=f"result_{product['id']}_{item['question']}",
+                    use_container_width=True
+                ):
+
+                    if product["id"] not in st.session_state.cart:
+
+                        st.session_state.cart.append(
+                            product["id"]
+                        )
+
+                    st.toast(
+                        "Added to bag 🛍️"
+                    )
+
 
                 st.markdown(
                     "</div>",
                     unsafe_allow_html=True
                 )
 
+    else:
+
+        st.info(
+            "No matching products found. "
+            "Try another category or budget."
+        )
+
 
 # ============================================================
-# CART
+# CART SUMMARY
 # ============================================================
 
 if st.session_state.cart:
 
     st.divider()
 
-    with st.expander(
-        f"🛒 Cart ({len(st.session_state.cart)})"
-    ):
-
-        cart_products = [
-            get_product(pid)
-            for pid in st.session_state.cart
-        ]
-
-        cart_products = [
-            p for p in cart_products
-            if p
-        ]
+    st.markdown(
+        f"### 🛍️ Your Bag — "
+        f"{len(st.session_state.cart)} item(s)"
+    )
 
 
-        total = sum(
-            p["price"]
-            for p in cart_products
+    total = 0
+
+
+    for pid in st.session_state.cart:
+
+        product = next(
+            (
+                p for p in PRODUCTS
+                if p["id"] == pid
+            ),
+            None
         )
 
+        if product:
 
-        for product in cart_products:
+            total += product["price"]
 
             st.write(
                 f"**{product['name']}** — "
@@ -1862,49 +1091,22 @@ if st.session_state.cart:
             )
 
 
-        st.success(
-            f"Cart total: ₹{total:,}"
-        )
-
-
-# ============================================================
-# WISHLIST
-# ============================================================
-
-if st.session_state.wishlist:
-
-    st.divider()
-
-    with st.expander(
-        f"❤️ Wishlist ({len(st.session_state.wishlist)})"
-    ):
-
-        wish_products = [
-            get_product(pid)
-            for pid in st.session_state.wishlist
-        ]
-
-        wish_products = [
-            p for p in wish_products
-            if p
-        ]
-
-
-        for product in wish_products:
-
-            st.write(
-                f"**{product['name']}** — "
-                f"₹{product['price']:,}"
-            )
+    st.success(
+        f"Total: ₹{total:,}"
+    )
 
 
 # ============================================================
 # FOOTER
 # ============================================================
 
-st.divider()
-
-st.caption(
-    "NOVA AI • Fashion • Beauty • Smart Shopping"
+st.markdown(
+    """
+    <div class="footer">
+        NOVA AI • Fashion & Beauty Assistant
+        <br>
+        Discover your style. Shop smarter.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
-
