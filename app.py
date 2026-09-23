@@ -1962,28 +1962,34 @@ st.markdown(
         margin-top:45px;
         background:#171717;
         color:white;
-        padding:28px;
+        padding:30px;
         border-radius:18px;
-        text-align:center
+        text-align:center;
     ">
-
         <div style="
-            font:700 28px 'Playfair Display'
+            font-size:28px;
+            font-weight:700;
+            font-family:Georgia, serif;
         ">
-            NOVA<span style="color:#ff72ad">
-                AI
-            </span>
+            NOVA<span style="color:#ff72ad;">AI</span>
         </div>
 
         <div style="
-            color:#bbb;
-            margin-top:5px
+            color:#bbbbbb;
+            margin-top:8px;
+            font-size:14px;
         ">
             AI Fashion • AI Beauty • Smart Shopping
         </div>
 
+        <div style="
+            color:#888888;
+            margin-top:12px;
+            font-size:12px;
+        ">
+            Powered by AI • 50+ Products • Smart Recommendations
+        </div>
     </div>
     """,
     unsafe_allow_html=True
 )
-
