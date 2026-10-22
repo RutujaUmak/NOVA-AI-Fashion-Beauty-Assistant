@@ -1,41 +1,23 @@
+import streamlit as st
 
+st.set_page_config(
+    page_title="NOVA AI",
+    page_icon="✨",
+    layout="wide"
+)
+
+st.markdown(
+    """
+    <style>
     .price {
         font-size: 20px;
         font-weight: 800;
-    }
-
-    .old-price {
-        color: #999;
-        text-decoration: line-through;
-        font-size: 13px;
-        margin-left: 6px;
-    }
-
-    .rating {
-        color: #087f5b;
-        font-weight: 600;
-        font-size: 13px;
-    }
-
-    .footer-note {
-        text-align: center;
-        color: #777;
-        padding: 28px 0 10px 0;
-    }
-
-    [data-testid="stChatInput"] textarea {
-        color: white !important;
-        background: #272932 !important;
-    }
-
-    [data-testid="stChatInput"] textarea::placeholder {
-        color: #dddddd !important;
+        color: #d63384;
     }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
-
 
 # ============================================================
 # SESSION STATE
