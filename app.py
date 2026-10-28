@@ -413,14 +413,39 @@ if page == "AI Style Studio":
                     )
                     response.raise_for_status()
                 except requests.RequestException as api_exc:
-                    status_code = getattr(getattr(api_exc, "response", None), "status_code", None)
-                    if status_code == 404:
+                    api_response = getattr(api_exc, "response", None)
+                    status_code = getattr(api_response, "status_code", None)
+                    if api_response is not None:
+                        try:
+                            tryon_error_detail = api_response.json()
+                        except ValueError:
+                            tryon_error_detail = api_response.text[:2000]
+                    else:
+                        tryon_error_detail = str(api_exc)
+
+                    if status_code == 400:
+                        st.error(
+                            "TryOn AI rejected the request (HTTP 400). Provider details: "
+                            f"{tryon_error_detail}. Check the message for missing/invalid images, "
+                            "unsupported parameters, or insufficient credits."
+                        )
+                    elif status_code == 401:
+                        st.error(
+                            "TryOn AI rejected the token (HTTP 401). Check VTON_API_KEY in "
+                            "Streamlit Secrets. Provider details: "
+                            f"{tryon_error_detail}"
+                        )
+                    elif status_code == 404:
                         st.error(
                             "The product image downloaded, but the TryOn API endpoint returned 404. "
-                            "Check the provider's current endpoint URL and API documentation."
+                            "Check the provider's current endpoint URL. Provider details: "
+                            f"{tryon_error_detail}"
                         )
                     else:
-                        st.error(f"TryOn API request failed: {api_exc}")
+                        st.error(
+                            f"TryOn API request failed (HTTP {status_code or 'unknown'}): "
+                            f"{tryon_error_detail}"
+                        )
                     st.stop()
                 payload = response.json()
                 experiment_id = payload.get("id") or payload.get("experiment_id")
