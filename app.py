@@ -1,4 +1,3 @@
-
 import os
 import io
 import time
@@ -331,7 +330,7 @@ def estimate_face_shape(image_bytes):
 
 # ==================== STYLE STUDIO + TRY-ON ====================
 
-elif page == "AI Style Studio":
+if page == "AI Style Studio":
     st.markdown("## 📸 NOVA AI Style Studio")
     st.write("Upload a photo and choose a garment for a virtual try-on.")
     st.warning(
