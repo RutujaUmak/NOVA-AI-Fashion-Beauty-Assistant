@@ -1,813 +1,720 @@
 
+import os
+import io
+import requests
 import streamlit as st
-from urllib.parse import urlparse
+import numpy as np
+from PIL import Image, ImageOps, ImageDraw
+
+# --------------------------------------------------
+# NOVA AI | Fashion & Beauty
+# --------------------------------------------------
 
 st.set_page_config(
     page_title="NOVA AI | Fashion & Beauty",
     page_icon="✨",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-# --------------------------------------------------
-# NOVA AI - PRODUCT CATALOGUE
-# Replace image_url with the actual image URL
-# for each product before publishing.
-# --------------------------------------------------
+# Read credentials safely. The app still runs without them.
+def get_secret(name, default=""):
+    try:
+        return str(st.secrets.get(name, default))
+    except Exception:
+        return os.getenv(name, default)
 
-PRODUCTS = [
-    {
-        "id": 1,
-        "name": "Floral Printed Kurta Set",
-        "category": "Women",
-        "type": "Ethnic Wear",
-        "price": 1499,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=700",
-    },
-    {
-        "id": 2,
-        "name": "Pastel Oversized Shirt",
-        "category": "Women",
-        "type": "Shirt",
-        "price": 899,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=700",
-    },
-    {
-        "id": 3,
-        "name": "Women's Denim Jacket",
-        "category": "Women",
-        "type": "Jacket",
-        "price": 1299,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=700",
-    },
-    {
-        "id": 4,
-        "name": "Elegant Party Dress",
-        "category": "Women",
-        "type": "Dress",
-        "price": 1899,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=700",
-    },
-    {
-        "id": 5,
-        "name": "Cotton Straight Kurta",
-        "category": "Women",
-        "type": "Ethnic Wear",
-        "price": 799,
-        "rating": 4.2,
-        "image_url": "https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=700",
-    },
-    {
-        "id": 6,
-        "name": "High Waist Blue Jeans",
-        "category": "Women",
-        "type": "Jeans",
-        "price": 1199,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=700",
-    },
-    {
-        "id": 7,
-        "name": "Floral Casual Top",
-        "category": "Women",
-        "type": "Top",
-        "price": 699,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=700",
-    },
-    {
-        "id": 8,
-        "name": "Elegant Anarkali Suit",
-        "category": "Women",
-        "type": "Ethnic Wear",
-        "price": 2199,
-        "rating": 4.7,
-        "image_url": "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?w=700",
-    },
-    {
-        "id": 9,
-        "name": "Women's Black Blazer",
-        "category": "Women",
-        "type": "Formal Wear",
-        "price": 1699,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=700",
-    },
-    {
-        "id": 10,
-        "name": "Printed Summer Dress",
-        "category": "Women",
-        "type": "Dress",
-        "price": 999,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=700",
-    },
-    {
-        "id": 11,
-        "name": "Classic Men's Casual Shirt",
-        "category": "Men",
-        "type": "Shirt",
-        "price": 999,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=700",
-    },
-    {
-        "id": 12,
-        "name": "Relaxed Fit Denim Jeans",
-        "category": "Men",
-        "type": "Jeans",
-        "price": 1299,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=700",
-    },
-    {
-        "id": 13,
-        "name": "Men's Black T-Shirt",
-        "category": "Men",
-        "type": "T-Shirt",
-        "price": 599,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=700",
-    },
-    {
-        "id": 14,
-        "name": "Men's Formal Shirt",
-        "category": "Men",
-        "type": "Formal Wear",
-        "price": 899,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1603252109303-2751441dd157?w=700",
-    },
-    {
-        "id": 15,
-        "name": "Slim Fit Chinos",
-        "category": "Men",
-        "type": "Trousers",
-        "price": 1199,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=700",
-    },
-    {
-        "id": 16,
-        "name": "Men's Denim Jacket",
-        "category": "Men",
-        "type": "Jacket",
-        "price": 1499,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=700",
-    },
-    {
-        "id": 17,
-        "name": "Men's Polo T-Shirt",
-        "category": "Men",
-        "type": "T-Shirt",
-        "price": 799,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1625910513413-5fc45b7d7eae?w=700",
-    },
-    {
-        "id": 18,
-        "name": "Men's Casual Hoodie",
-        "category": "Men",
-        "type": "Hoodie",
-        "price": 1099,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=700",
-    },
-    {
-        "id": 19,
-        "name": "Men's Linen Shirt",
-        "category": "Men",
-        "type": "Shirt",
-        "price": 1199,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=700",
-    },
-    {
-        "id": 20,
-        "name": "Men's Premium Blazer",
-        "category": "Men",
-        "type": "Formal Wear",
-        "price": 2499,
-        "rating": 4.8,
-        "image_url": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=700",
-    },
-    {
-        "id": 21,
-        "name": "Hydrating Glow Serum",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 799,
-        "rating": 4.7,
-        "image_url": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700",
-    },
-    {
-        "id": 22,
-        "name": "Velvet Matte Lipstick",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 599,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700",
-    },
-    {
-        "id": 23,
-        "name": "Soft Blush Makeup Palette",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 899,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=700",
-    },
-    {
-        "id": 24,
-        "name": "Vitamin C Face Serum",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 699,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1556229010-aa3c1c2c7c4a?w=700",
-    },
-    {
-        "id": 25,
-        "name": "Hydrating Face Moisturizer",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 549,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=700",
-    },
-    {
-        "id": 26,
-        "name": "Waterproof Mascara",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 499,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1631214524020-7e18db9a8f92?w=700",
-    },
-    {
-        "id": 27,
-        "name": "Liquid Foundation",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 749,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700",
-    },
-    {
-        "id": 28,
-        "name": "Rose Face Toner",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 399,
-        "rating": 4.2,
-        "image_url": "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=700",
-    },
-    {
-        "id": 29,
-        "name": "Nude Lip Gloss",
-        "category": "Beauty",
-        "type": "Makeup",
-        "price": 349,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=700",
-    },
-    {
-        "id": 30,
-        "name": "Daily Sunscreen SPF 50",
-        "category": "Beauty",
-        "type": "Skincare",
-        "price": 599,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=700",
-    },
-    {
-        "id": 31,
-        "name": "Minimal Gold Necklace",
-        "category": "Accessories",
-        "type": "Jewellery",
-        "price": 699,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=700",
-    },
-    {
-        "id": 32,
-        "name": "Structured Women's Handbag",
-        "category": "Accessories",
-        "type": "Bags",
-        "price": 1199,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=700",
-    },
-    {
-        "id": 33,
-        "name": "Classic Leather Wallet",
-        "category": "Accessories",
-        "type": "Wallet",
-        "price": 499,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1627123424574-724758594e93?w=700",
-    },
-    {
-        "id": 34,
-        "name": "Elegant Pearl Earrings",
-        "category": "Accessories",
-        "type": "Jewellery",
-        "price": 599,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=700",
-    },
-    {
-        "id": 35,
-        "name": "Women's Fashion Watch",
-        "category": "Accessories",
-        "type": "Watch",
-        "price": 1299,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=700",
-    },
-    {
-        "id": 36,
-        "name": "Men's Classic Watch",
-        "category": "Accessories",
-        "type": "Watch",
-        "price": 1499,
-        "rating": 4.7,
-        "image_url": "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=700",
-    },
-    {
-        "id": 37,
-        "name": "Fashion Sunglasses",
-        "category": "Accessories",
-        "type": "Sunglasses",
-        "price": 399,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=700",
-    },
-    {
-        "id": 38,
-        "name": "Leather Crossbody Bag",
-        "category": "Accessories",
-        "type": "Bags",
-        "price": 999,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=700",
-    },
-    {
-        "id": 39,
-        "name": "Statement Bracelet",
-        "category": "Accessories",
-        "type": "Jewellery",
-        "price": 449,
-        "rating": 4.2,
-        "image_url": "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=700",
-    },
-    {
-        "id": 40,
-        "name": "Classic Leather Belt",
-        "category": "Accessories",
-        "type": "Belt",
-        "price": 599,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=700",
-    },
-    {
-        "id": 41,
-        "name": "Everyday Sneakers",
-        "category": "Footwear",
-        "type": "Shoes",
-        "price": 1299,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700",
-    },
-    {
-        "id": 42,
-        "name": "Women's Casual Sneakers",
-        "category": "Footwear",
-        "type": "Shoes",
-        "price": 999,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=700",
-    },
-    {
-        "id": 43,
-        "name": "Men's Running Shoes",
-        "category": "Footwear",
-        "type": "Sports Shoes",
-        "price": 1599,
-        "rating": 4.7,
-        "image_url": "https://images.unsplash.com/photo-1552346154-21d32810aba3?w=700",
-    },
-    {
-        "id": 44,
-        "name": "Women's Flat Sandals",
-        "category": "Footwear",
-        "type": "Sandals",
-        "price": 499,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1603487742131-4160ec999306?w=700",
-    },
-    {
-        "id": 45,
-        "name": "Men's Casual Loafers",
-        "category": "Footwear",
-        "type": "Loafers",
-        "price": 1099,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=700",
-    },
-    {
-        "id": 46,
-        "name": "Women's Heeled Sandals",
-        "category": "Footwear",
-        "type": "Heels",
-        "price": 899,
-        "rating": 4.4,
-        "image_url": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=700",
-    },
-    {
-        "id": 47,
-        "name": "Classic White Sneakers",
-        "category": "Footwear",
-        "type": "Shoes",
-        "price": 1199,
-        "rating": 4.6,
-        "image_url": "https://images.unsplash.com/photo-1495555961986-6d4c1ecb7be3?w=700",
-    },
-    {
-        "id": 48,
-        "name": "Women's Ballet Flats",
-        "category": "Footwear",
-        "type": "Flats",
-        "price": 699,
-        "rating": 4.3,
-        "image_url": "https://images.unsplash.com/photo-1560343090-f0409e92791a?w=700",
-    },
-    {
-        "id": 49,
-        "name": "Men's Sports Sneakers",
-        "category": "Footwear",
-        "type": "Sports Shoes",
-        "price": 1399,
-        "rating": 4.5,
-        "image_url": "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=700",
-    },
-    {
-        "id": 50,
-        "name": "Premium Party Heels",
-        "category": "Footwear",
-        "type": "Heels",
-        "price": 1499,
-        "rating": 4.7,
-        "image_url": "https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?w=700",
-    },
-]
+
+VTON_API_URL = get_secret("VTON_API_URL")
+VTON_API_KEY = get_secret("VTON_API_KEY")
 
 # --------------------------------------------------
-# STYLE
+# Aesthetic styling
 # --------------------------------------------------
 
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background: linear-gradient(135deg, #fff7fb, #f8f5ff);
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+
+.stApp {
+    background: linear-gradient(135deg, #100f19 0%, #201529 55%, #321b30 100%);
+    color: #f9f3f8;
+    font-family: 'DM Sans', sans-serif;
+}
+[data-testid="stSidebar"] {
+    background: #17131f;
+    border-right: 1px solid #463348;
+}
+h1, h2, h3 {
+    font-family: 'Playfair Display', serif !important;
+    color: #f8d8e8 !important;
+}
+p, label, span {
+    color: #f4eaf2;
+}
+div.stButton > button {
+    background: linear-gradient(90deg, #d85c9b, #9b72dc);
+    color: white;
+    border: 0;
+    border-radius: 12px;
+    padding: 0.65rem 1.2rem;
+    font-weight: 700;
+    transition: all .2s ease;
+}
+div.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px #d85c9b40;
+    border: 0;
+}
+.nova-hero {
+    padding: 32px;
+    border-radius: 24px;
+    background: linear-gradient(120deg, #35213e, #542b4a, #302347);
+    border: 1px solid #86547b;
+    margin-bottom: 22px;
+}
+.nova-subtitle {
+    color: #e9c7df;
+    font-size: 16px;
+}
+.nova-card {
+    padding: 20px;
+    background: #211a2a;
+    border: 1px solid #49364e;
+    border-radius: 18px;
+    margin-bottom: 12px;
+}
+.nova-tag {
+    display: inline-block;
+    background: #493047;
+    padding: 5px 10px;
+    border-radius: 20px;
+    color: #ffd7ed;
+    font-size: 12px;
+    margin: 3px;
+}
+hr { border-color: #49364e; }
+</style>
+""", unsafe_allow_html=True)
+
+
+# --------------------------------------------------
+# Helpers
+# --------------------------------------------------
+
+def open_image(upload):
+    """Safely open and normalize an uploaded image."""
+    if upload is None:
+        return None
+
+    try:
+        image = Image.open(io.BytesIO(upload.getvalue()))
+        image = ImageOps.exif_transpose(image).convert("RGB")
+
+        # Limit image dimensions to keep requests manageable.
+        image.thumbnail((1200, 1200))
+        return image
+    except Exception:
+        return None
+
+
+def image_bytes(image, fmt="JPEG"):
+    """Convert PIL image into uploadable bytes."""
+    buffer = io.BytesIO()
+    image.convert("RGB").save(buffer, format=fmt, quality=90)
+    return buffer.getvalue()
+
+
+def dominant_color(image):
+    """Find a representative image color without facial recognition."""
+    if image is None:
+        return None
+
+    small = image.resize((80, 80))
+    pixels = np.asarray(small).reshape(-1, 3).astype(np.float32)
+
+    # Ignore near-white and very dark pixels when possible.
+    brightness = pixels.mean(axis=1)
+    selected = pixels[(brightness > 25) & (brightness < 245)]
+
+    if len(selected) == 0:
+        selected = pixels
+
+    rgb = np.median(selected, axis=0).astype(int)
+    return tuple(int(v) for v in rgb)
+
+
+def color_name(rgb):
+    """Approximate color family for simple style suggestions."""
+    if rgb is None:
+        return "unknown"
+
+    r, g, b = rgb
+    maximum = max(r, g, b)
+    minimum = min(r, g, b)
+
+    if maximum < 65:
+        return "black or deep neutral"
+    if minimum > 205:
+        return "white or ivory"
+    if maximum - minimum < 25:
+        return "neutral grey"
+    if r > g * 1.25 and r > b * 1.15:
+        return "red, rose or warm pink"
+    if r > 150 and g > 100 and b < 115:
+        return "warm peach, beige or brown"
+    if g > r * 1.15 and g > b * 1.1:
+        return "green"
+    if b > r * 1.15 and b > g * 1.05:
+        return "blue or violet"
+    if r > 150 and b > 130 and g < 150:
+        return "pink or purple"
+
+    return "mixed or neutral tones"
+
+
+def recommend_style(preferred_style, occasion, preferred_colors):
+    """Explain recommendations using explicit user preferences."""
+    recommendations = {
+        "Minimal": [
+            "Try clean silhouettes and solid colors.",
+            "Consider a simple kurta set, shirt dress or tailored outfit.",
+        ],
+        "Elegant": [
+            "Consider a flowing silhouette with refined detailing.",
+            "Try a coordinated outfit with subtle accessories.",
+        ],
+        "Casual": [
+            "Try comfortable cuts and easy-to-style separates.",
+            "Consider jeans with a top, a relaxed dress or a casual co-ord.",
+        ],
+        "Traditional": [
+            "Explore sarees, anarkali suits, lehengas or kurta sets.",
+            "Choose detailing and fabrics appropriate to your occasion.",
+        ],
+        "Streetwear": [
+            "Try relaxed fits, layering and statement sneakers.",
+            "Consider an oversized shirt, cargo trousers or a co-ord.",
+        ],
     }
-    h1, h2, h3 {
-        color: #8e245f;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
-# --------------------------------------------------
-# HEADER
-# --------------------------------------------------
-
-st.title("✨ NOVA AI")
-st.subheader("Your Fashion, Beauty & Personal Style Assistant")
-st.write(
-    "Discover products, compare prices, explore style ideas, "
-    "and get recommendations from our catalogue."
-)
-
-# --------------------------------------------------
-# SESSION STATE
-# --------------------------------------------------
-
-if "cart" not in st.session_state:
-    st.session_state.cart = []
-
-if "wishlist" not in st.session_state:
-    st.session_state.wishlist = []
-
-if "chat" not in st.session_state:
-    st.session_state.chat = []
-
-# --------------------------------------------------
-# SIDEBAR
-# --------------------------------------------------
-
-st.sidebar.title("Explore NOVA AI")
-
-page = st.sidebar.radio(
-    "Choose a feature",
-    [
-        "Product Catalogue",
-        "AI Style Assistant",
-        "Virtual Try-On",
-        "My Cart",
-        "My Wishlist",
-    ],
-)
-
-# --------------------------------------------------
-# PRODUCT CARD
-# --------------------------------------------------
-
-def show_product(product):
-    with st.container(border=True):
-        st.image(
-            product["image_url"],
-            caption=product["name"],
-            use_container_width=True,
-        )
-
-        st.markdown(f"**{product['name']}**")
-        st.write(f"Category: {product['category']}")
-        st.write(f"₹{product['price']:,}")
-        st.write(f"⭐ {product['rating']} / 5")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            if st.button(
-                "Add to Cart",
-                key=f"cart_{product['id']}",
-                use_container_width=True,
-            ):
-                st.session_state.cart.append(product["id"])
-                st.success("Added to cart!")
-
-        with col2:
-            if st.button(
-                "♡ Wishlist",
-                key=f"wish_{product['id']}",
-                use_container_width=True,
-            ):
-                if product["id"] not in st.session_state.wishlist:
-                    st.session_state.wishlist.append(product["id"])
-                st.success("Added to wishlist!")
-
-# --------------------------------------------------
-# PRODUCT CATALOGUE
-# --------------------------------------------------
-
-if page == "Product Catalogue":
-    st.header("🛍️ Explore Products")
-
-    categories = ["All"] + sorted(
-        {product["category"] for product in PRODUCTS}
+    items = recommendations.get(
+        preferred_style,
+        recommendations["Elegant"]
     )
 
-    col1, col2 = st.columns([2, 1])
-
-    with col1:
-        search = st.text_input(
-            "Search products",
-            placeholder="Try dress, lipstick, shoes, serum...",
-        ).strip().lower()
-
-    with col2:
-        category = st.selectbox("Category", categories)
-
-    max_price = st.slider(
-        "Maximum price (₹)",
-        min_value=300,
-        max_value=5000,
-        value=5000,
-        step=100,
-    )
-
-    filtered = [
-        p for p in PRODUCTS
-        if (category == "All" or p["category"] == category)
-        and p["price"] <= max_price
-        and (
-            search in p["name"].lower()
-            or search in p["category"].lower()
-            or search in p["type"].lower()
-        )
+    return items + [
+        f"Occasion: {occasion}.",
+        f"Preferred colors: {', '.join(preferred_colors)}.",
     ]
 
-    sort_by = st.selectbox(
-        "Sort products",
-        ["Recommended", "Price: Low to High", "Price: High to Low", "Top Rated"],
-    )
 
-    if sort_by == "Price: Low to High":
-        filtered.sort(key=lambda p: p["price"])
-    elif sort_by == "Price: High to Low":
-        filtered.sort(key=lambda p: p["price"], reverse=True)
-    elif sort_by == "Top Rated":
-        filtered.sort(key=lambda p: p["rating"], reverse=True)
+def run_virtual_tryon(person_image, garment_image, category):
+    """
+    Calls a user-configured virtual try-on API.
 
-    st.caption(f"{len(filtered)} products found")
+    IMPORTANT:
+    VTON_API_URL must point to an API you control or a service
+    whose documented request/response format matches this example.
 
-    if not filtered:
-        st.info("No products found. Try a different search or price range.")
-    else:
-        for start in range(0, len(filtered), 3):
-            cols = st.columns(3)
-            for col, product in zip(cols, filtered[start:start + 3]):
-                with col:
-                    show_product(product)
+    Expected request:
+      multipart fields: person, garment, category
+      optional header: Authorization: Bearer <API key>
 
-# --------------------------------------------------
-# AI STYLE ASSISTANT - RULE-BASED, NO API REQUIRED
-# --------------------------------------------------
-
-elif page == "AI Style Assistant":
-    st.header("💬 NOVA Style Assistant")
-    st.write(
-        "Ask about products, affordable options, outfits, "
-        "occasions, beauty products, or colour combinations."
-    )
-
-    with st.form("chat_form", clear_on_submit=True):
-        question = st.text_input(
-            "Your question",
-            placeholder="Example: Show me the cheapest dress",
+    Expected response:
+      either raw image bytes or JSON containing an image_url field.
+    """
+    if not VTON_API_URL:
+        return None, (
+            "Virtual try-on is not connected yet. Configure VTON_API_URL "
+            "with a compatible virtual try-on API before using this feature."
         )
-        submitted = st.form_submit_button("Get Recommendation")
 
-    if submitted and question.strip():
-        q = question.lower()
+    headers = {}
+    if VTON_API_KEY:
+        headers["Authorization"] = f"Bearer {VTON_API_KEY}"
 
-        if any(word in q for word in ["cheap", "cheapest", "affordable", "budget", "low price"]):
-            results = sorted(PRODUCTS, key=lambda p: p["price"])[:5]
-            answer = "Here are five affordable products from the catalogue."
+    files = {
+        "person": (
+            "person.jpg",
+            image_bytes(person_image),
+            "image/jpeg",
+        ),
+        "garment": (
+            "garment.jpg",
+            image_bytes(garment_image),
+            "image/jpeg",
+        ),
+    }
 
-        elif any(word in q for word in ["dress", "kurta", "outfit", "wear", "clothes"]):
-            results = [
-                p for p in PRODUCTS
-                if p["category"] in ["Women", "Men"]
-                and any(
-                    word in (p["name"] + " " + p["type"]).lower()
-                    for word in ["dress", "kurta", "shirt", "jeans", "blazer"]
-                )
-            ][:5]
-            answer = "Here are some clothing options you can explore."
+    try:
+        response = requests.post(
+            VTON_API_URL,
+            headers=headers,
+            files=files,
+            data={"category": category},
+            timeout=180,
+        )
+        response.raise_for_status()
 
-        elif any(word in q for word in ["beauty", "skin", "makeup", "lipstick", "serum"]):
-            results = [p for p in PRODUCTS if p["category"] == "Beauty"][:5]
-            answer = "Here are beauty and skincare products from the catalogue."
+        content_type = response.headers.get("Content-Type", "")
 
-        elif any(word in q for word in ["shoe", "sneaker", "sandal", "heel", "footwear"]):
-            results = [p for p in PRODUCTS if p["category"] == "Footwear"][:5]
-            answer = "Here are footwear options from the catalogue."
+        if "image/" in content_type:
+            result = Image.open(
+                io.BytesIO(response.content)
+            ).convert("RGB")
+            return result, None
 
-        else:
-            matching = [
-                p for p in PRODUCTS
-                if any(
-                    word in (p["name"] + " " + p["category"] + " " + p["type"]).lower()
-                    for word in q.split()
-                    if len(word) > 2
-                )
-            ]
-            results = matching[:5]
-            answer = (
-                "Here are products matching your question."
-                if results
-                else "Try asking about dresses, shirts, beauty products, "
-                     "footwear, accessories, or affordable products."
+        data = response.json()
+        image_url = data.get("image_url")
+
+        if not image_url:
+            return None, (
+                "The API responded, but no image_url was returned. "
+                "Update the response parser to match your provider's API."
             )
 
-        st.markdown(f"**NOVA AI:** {answer}")
+        # Only download images from HTTPS URLs.
+        if not image_url.startswith("https://"):
+            return None, "The API returned an unsupported image URL."
 
-        if results:
-            cols = st.columns(min(3, len(results)))
-            for i, product in enumerate(results):
-                with cols[i % len(cols)]:
-                    show_product(product)
+        image_response = requests.get(
+            image_url, timeout=60
+        )
+        image_response.raise_for_status()
+
+        result = Image.open(
+            io.BytesIO(image_response.content)
+        ).convert("RGB")
+        return result, None
+
+    except requests.Timeout:
+        return None, "The virtual try-on request timed out. Please retry."
+    except requests.RequestException:
+        return None, (
+            "The virtual try-on service could not be reached. "
+            "Check its endpoint, credentials and service status."
+        )
+    except (ValueError, OSError, KeyError):
+        return None, (
+            "The service returned an unsupported image response. "
+            "Check the provider's API documentation."
+        )
+
 
 # --------------------------------------------------
-# VIRTUAL TRY-ON - UPLOAD AND PREVIEW
+# Header
 # --------------------------------------------------
 
-elif page == "Virtual Try-On":
-    st.header("👗 Virtual Try-On")
-    st.write(
-        "Upload a photo and select a catalogue item. "
-        "This starter feature previews your photo and the selected product; "
-        "it does not yet generate a realistic outfit replacement."
+st.markdown("""
+<div class="nova-hero">
+    <span class="nova-tag">AI PERSONAL STYLIST</span>
+    <h1 style="font-size:42px; margin-bottom:4px;">
+        ✨ NOVA AI
+    </h1>
+    <p class="nova-subtitle">
+        Discover your style. Explore your look.
+        Find outfits for your next moment.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+
+# --------------------------------------------------
+# Sidebar
+# --------------------------------------------------
+
+with st.sidebar:
+    st.markdown("## ✨ NOVA STUDIO")
+    page = st.radio(
+        "Explore",
+        [
+            "Home",
+            "Virtual Try-On",
+            "AI Style Advisor",
+            "My Wardrobe",
+        ],
     )
 
-    uploaded = st.file_uploader(
-        "Upload a selfie or full-body photo",
-        type=["jpg", "jpeg", "png"],
-    )
+    st.divider()
+    st.caption("Your photo stays in this app session unless "
+               "you submit it to a configured external API.")
 
-    clothing = [
-        p for p in PRODUCTS
-        if p["category"] in ["Women", "Men"]
-    ]
 
-    selected_name = st.selectbox(
-        "Choose an outfit",
-        [p["name"] for p in clothing],
-    )
-    selected = next(
-        p for p in clothing if p["name"] == selected_name
-    )
+# --------------------------------------------------
+# HOME
+# --------------------------------------------------
+
+if page == "Home":
+    st.subheader("Your personal fashion space")
 
     left, right = st.columns(2)
 
     with left:
-        st.subheader("Your Photo")
-        if uploaded:
-            st.image(uploaded, use_container_width=True)
-        else:
-            st.info("Upload a photo to see it here.")
+        st.markdown("""
+        <div class="nova-card">
+            <h3>👗 Virtual Try-On</h3>
+            <p>Upload your photo and a garment image.
+            Connect a compatible AI service to generate
+            a virtual outfit preview.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("Explore Virtual Try-On", key="home_tryon"):
+            st.session_state["selected_page"] = "Virtual Try-On"
+            st.info("Select Virtual Try-On in the sidebar.")
 
     with right:
-        st.subheader("Selected Product")
-        st.image(
-            selected["image_url"],
-            caption=selected["name"],
-            use_container_width=True,
-        )
-        st.write(f"Price: ₹{selected['price']:,}")
+        st.markdown("""
+        <div class="nova-card">
+            <h3>💖 AI Style Advisor</h3>
+            <p>Get outfit ideas using your occasion,
+            preferred colors and personal style choices.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.warning(
-        "A real virtual try-on requires a compatible image-generation "
-        "model or API. This preview does not claim that you are wearing "
-        "the selected outfit."
+        if st.button("Explore Style Advisor", key="home_style"):
+            st.info("Select AI Style Advisor in the sidebar.")
+
+    st.subheader("How NOVA AI works")
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("01", "Upload")
+    c2.metric("02", "Personalize")
+    c3.metric("03", "Explore")
+
+    st.caption(
+        "Style suggestions are informational, not guarantees "
+        "of fit, appearance or color suitability."
     )
 
+
 # --------------------------------------------------
-# CART
+# VIRTUAL TRY-ON
 # --------------------------------------------------
 
-elif page == "My Cart":
-    st.header("🛒 My Cart")
+elif page == "Virtual Try-On":
+    st.subheader("👗 AI Virtual Try-On")
+    st.write(
+        "Upload a clear, well-lit photo and a picture of the "
+        "garment you want to try."
+    )
 
-    cart_items = [
-        p for product_id in st.session_state.cart
-        for p in PRODUCTS if p["id"] == product_id
-    ]
+    person_source = st.radio(
+        "Choose your photo source",
+        ["Upload photo", "Take a photo"],
+        horizontal=True,
+    )
 
-    if not cart_items:
-        st.info("Your cart is empty.")
+    person_upload = None
+
+    if person_source == "Upload photo":
+        person_upload = st.file_uploader(
+            "Upload your selfie or full-body photo",
+            type=["jpg", "jpeg", "png"],
+            key="person_upload",
+        )
     else:
-        total = 0
-        for product in cart_items:
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.image(product["image_url"], use_container_width=True)
-            with col2:
-                st.markdown(f"**{product['name']}**")
-                st.write(f"₹{product['price']:,}")
-                total += product["price"]
+        person_upload = st.camera_input(
+            "Take a photo",
+            key="person_camera",
+        )
 
-        st.subheader(f"Total: ₹{total:,}")
+    garment_upload = st.file_uploader(
+        "Upload the selected dress or garment image",
+        type=["jpg", "jpeg", "png"],
+        key="garment_upload",
+    )
 
-        if st.button("Clear Cart"):
-            st.session_state.cart = []
-            st.rerun()
+    category = st.selectbox(
+        "Garment category",
+        [
+            "upper_body",
+            "lower_body",
+            "dresses",
+        ],
+        format_func=lambda x: {
+            "upper_body": "Top / Shirt",
+            "lower_body": "Trousers / Skirt",
+            "dresses": "Dress / Full outfit",
+        }[x],
+    )
+
+    person_image = open_image(person_upload)
+    garment_image = open_image(garment_upload)
+
+    if person_image:
+        st.image(
+            person_image,
+            caption="Your uploaded photo",
+            width=280,
+        )
+
+    if garment_image:
+        st.image(
+            garment_image,
+            caption="Selected garment",
+            width=280,
+        )
+
+    st.info(
+        "For best results, use a clear photo and a garment image "
+        "with minimal background clutter. Actual results depend "
+        "on the connected try-on model."
+    )
+
+    if st.button(
+        "✨ Generate Virtual Try-On",
+        type="primary",
+        key="generate_tryon",
+    ):
+        if person_image is None or garment_image is None:
+            st.warning(
+                "Please upload both your photo and a garment image."
+            )
+        else:
+            with st.spinner("Generating your outfit preview..."):
+                result, error = run_virtual_tryon(
+                    person_image,
+                    garment_image,
+                    category,
+                )
+
+            if result is not None:
+                st.success("Your virtual try-on result is ready!")
+                st.image(
+                    result,
+                    caption="AI-generated virtual try-on preview",
+                    use_container_width=True,
+                )
+
+                st.download_button(
+                    "Download result",
+                    data=image_bytes(result),
+                    file_name="nova_virtual_tryon.jpg",
+                    mime="image/jpeg",
+                )
+            else:
+                st.warning(error)
+
+    st.caption(
+        "A true 360° video is not generated by this version. "
+        "That feature requires a model or service that produces "
+        "multiple consistent views or a 3D avatar."
+    )
+
 
 # --------------------------------------------------
-# WISHLIST
+# AI STYLE ADVISOR
 # --------------------------------------------------
 
-elif page == "My Wishlist":
-    st.header("♡ My Wishlist")
+elif page == "AI Style Advisor":
+    st.subheader("💖 Your AI Style Advisor")
+    st.write(
+        "Tell NOVA what you like to receive personalized "
+        "outfit ideas."
+    )
 
-    wishlist_items = [
-        p for p in PRODUCTS
-        if p["id"] in st.session_state.wishlist
-    ]
+    col1, col2 = st.columns(2)
 
-    if not wishlist_items:
-        st.info("Your wishlist is empty.")
-    else:
+    with col1:
+        style = st.selectbox(
+            "Your preferred style",
+            [
+                "Elegant",
+                "Minimal",
+                "Casual",
+                "Traditional",
+                "Streetwear",
+            ],
+        )
+
+        occasion = st.selectbox(
+            "Choose an occasion",
+            [
+                "Everyday",
+                "College",
+                "Office",
+                "Party",
+                "Wedding",
+                "Interview",
+                "Travel",
+            ],
+        )
+
+    with col2:
+        colors = st.multiselect(
+            "Colors you enjoy wearing",
+            [
+                "Black",
+                "White",
+                "Pink",
+                "Blue",
+                "Red",
+                "Purple",
+                "Green",
+                "Beige",
+                "Pastels",
+                "Earth tones",
+            ],
+            default=["Black", "Blue"],
+        )
+
+        budget = st.selectbox(
+            "Budget per outfit",
+            [
+                "Under ₹1,000",
+                "₹1,000–₹2,500",
+                "₹2,500–₹5,000",
+                "Above ₹5,000",
+            ],
+        )
+
+    st.markdown("### Optional photo-based color analysis")
+
+    photo_upload = st.file_uploader(
+        "Upload a photo if you want a rough color overview",
+        type=["jpg", "jpeg", "png"],
+        key="style_photo",
+    )
+
+    style_photo = open_image(photo_upload)
+
+    if style_photo:
+        st.image(
+            style_photo,
+            caption="Photo used for approximate color analysis",
+            width=250,
+        )
+
+    if st.button("Generate My Style Guide", type="primary"):
+        if not colors:
+            st.warning("Please choose at least one preferred color.")
+        else:
+            suggestions = recommend_style(
+                style,
+                occasion,
+                colors,
+            )
+
+            st.markdown("### ✨ Your style guide")
+
+            for suggestion in suggestions:
+                st.markdown(f"- {suggestion}")
+
+            st.markdown("### 🎨 Color inspiration")
+
+            if style_photo:
+                rgb = dominant_color(style_photo)
+                name = color_name(rgb)
+
+                st.markdown(
+                    f"Your photo has a prominent color family "
+                    f"that appears closest to **{name}**."
+                )
+
+                swatch = Image.new("RGB", (420, 100), rgb)
+                st.image(
+                    swatch,
+                    caption=f"Approximate sampled color: RGB {rgb}",
+                    width=320,
+                )
+
+                st.caption(
+                    "This is a rough image-color estimate, not "
+                    "skin-tone, face-shape or personality analysis. "
+                    "Lighting and background can affect the result."
+                )
+
+            st.markdown("### 🛍️ Suggested outfit directions")
+
+            outfit_ideas = {
+                "Everyday": "Comfortable separates with sneakers.",
+                "College": "A relaxed co-ord or jeans with a top.",
+                "Office": "Tailored trousers with a clean shirt.",
+                "Party": "A statement dress or coordinated evening look.",
+                "Wedding": "A saree, lehenga or occasion-appropriate suit.",
+                "Interview": "A neat, well-fitted formal outfit.",
+                "Travel": "Comfortable layers and versatile basics.",
+            }
+
+            st.markdown(
+                f"<div class='nova-card'>"
+                f"<h3>{style} · {occasion}</h3>"
+                f"<p>{outfit_ideas.get(occasion, 'Explore versatile outfits.')}</p>"
+                f"<p>Budget: {budget}</p>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+
+# --------------------------------------------------
+# MY WARDROBE / PRODUCT GALLERY
+# --------------------------------------------------
+
+elif page == "My Wardrobe":
+    st.subheader("🛍️ My Wardrobe")
+    st.write(
+        "Build your own catalog by uploading real product images. "
+        "This avoids showing an unrelated stock image as a product."
+    )
+
+    catalog_uploads = st.file_uploader(
+        "Upload garment/product photos",
+        type=["jpg", "jpeg", "png"],
+        accept_multiple_files=True,
+        key="wardrobe_uploads",
+    )
+
+    if catalog_uploads:
         cols = st.columns(3)
-        for i, product in enumerate(wishlist_items):
-            with cols[i % 3]:
-                show_product(product)
+
+        for index, upload in enumerate(catalog_uploads):
+            image = open_image(upload)
+
+            if image is None:
+                continue
+
+            with cols[index % 3]:
+                st.image(
+                    image,
+                    caption=upload.name,
+                    use_container_width=True,
+                )
+
+                rgb = dominant_color(image)
+                st.caption(
+                    f"Approximate color: {color_name(rgb)}"
+                )
+
+                st.download_button(
+                    "Download image",
+                    data=image_bytes(image),
+                    file_name=f"nova_product_{index + 1}.jpg",
+                    mime="image/jpeg",
+                    key=f"download_{index}",
+                )
+    else:
+        st.info(
+            "No products uploaded yet. Upload product photos to "
+            "create your own visual catalog."
+        )
+
+    st.caption(
+        "This gallery uses the images you provide. It does not "
+        "automatically verify product names, prices, brands or stock."
+    )
+
 
 # --------------------------------------------------
 # FOOTER
 # --------------------------------------------------
 
 st.divider()
-st.caption(
-    "NOVA AI | Fashion & Beauty — Product images and prices are "
-    "catalogue examples. Verify image accuracy and prices before publishing."
+
+st.markdown(
+    "<p style='text-align:center;color:#c9a8c6;'>"
+    "✨ NOVA AI · Fashion meets intelligent personalization"
+    "</p>",
+    unsafe_allow_html=True,
 )
