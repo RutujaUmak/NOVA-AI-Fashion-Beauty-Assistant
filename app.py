@@ -4,7 +4,7 @@ import time
 import uuid
 import requests
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageOps, ImageDraw
 from supabase import create_client
 from groq import Groq
 
@@ -370,7 +370,61 @@ if page == "AI Style Studio":
                 }
                 st.write(suggestions.get(shape,"Try the styles you feel comfortable wearing."))
             st.caption(note)
-    if st.button("Generate AI virtual try-on",type="primary"):
+    # Free-only mode: the paid provider option is intentionally disabled so this
+    # app cannot accidentally spend TryOn AI credits.
+    tryon_mode = "Free Demo (no AI credits)"
+    st.info("Free Demo mode is enabled. No TryOn AI API calls or paid credits are used.")
+
+    if tryon_mode == "Free Demo (no AI credits)" and st.button(
+        "Generate FREE demo preview", type="primary"
+    ):
+        if not photo:
+            st.error("Upload a photo first.")
+        else:
+            try:
+                garment_resp = requests.get(
+                    garment["image_url"], timeout=30,
+                    headers={"User-Agent": "Mozilla/5.0 NOVA-AI"}
+                )
+                garment_resp.raise_for_status()
+                person_img = Image.open(io.BytesIO(photo.getvalue())).convert("RGB")
+                garment_img = Image.open(io.BytesIO(garment_resp.content)).convert("RGB")
+
+                # Build a clearly labelled side-by-side inspiration board.
+                panel_w, panel_h = 480, 600
+                header_h = 58
+                person_fit = ImageOps.contain(person_img, (panel_w - 24, panel_h - 24))
+                garment_fit = ImageOps.contain(garment_img, (panel_w - 24, panel_h - 24))
+                board = Image.new("RGB", (panel_w * 2, panel_h + header_h), "white")
+                draw = ImageDraw.Draw(board)
+                draw.rectangle((0, 0, panel_w - 1, header_h - 1), fill=(116, 24, 78))
+                draw.rectangle((panel_w, 0, panel_w * 2 - 1, header_h - 1), fill=(116, 24, 78))
+                draw.text((18, 20), "YOUR PHOTO", fill="white")
+                draw.text((panel_w + 18, 20), "SELECTED GARMENT", fill="white")
+                person_x = (panel_w - person_fit.width) // 2
+                garment_x = panel_w + (panel_w - garment_fit.width) // 2
+                person_y = header_h + (panel_h - person_fit.height) // 2
+                garment_y = header_h + (panel_h - garment_fit.height) // 2
+                board.paste(person_fit, (person_x, person_y))
+                board.paste(garment_fit, (garment_x, garment_y))
+                output = io.BytesIO()
+                board.save(output, format="PNG")
+                preview_bytes = output.getvalue()
+                st.session_state.tryon_image = None  # Prevent video API calls from a demo preview.
+                st.image(preview_bytes, caption="Free style inspiration board — not an AI-generated try-on", use_container_width=True)
+                st.info("This free demo uses no TryOn AI credits. It places your photo and the garment side by side; it does not digitally dress your body.")
+                st.download_button(
+                    "Download free demo preview",
+                    data=preview_bytes,
+                    file_name="nova_free_style_demo.png",
+                    mime="image/png"
+                )
+            except Exception as exc:
+                st.error(f"Could not create the free demo preview: {exc}. Try another product image.")
+
+    if tryon_mode == "AI Virtual Try-On (uses credits)" and st.button(
+        "Generate AI virtual try-on (uses provider credits)", type="primary"
+    ):
         if not photo:
             st.error("Upload a photo first.")
         elif not VTON_API_KEY:
