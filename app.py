@@ -7,6 +7,7 @@ import streamlit as st
 from PIL import Image, ImageOps, ImageDraw
 from supabase import create_client
 from groq import Groq
+import streamlit.components.v1 as components
 
 # Optional: install mediapipe to enable approximate face-shape estimation.
 try:
@@ -329,293 +330,65 @@ def estimate_face_shape(image_bytes):
         return None, f"Face-shape estimation unavailable: {exc}"
 
 # ==================== STYLE STUDIO + TRY-ON ====================
+ 
+# ==================== STYLE STUDIO + TRY-ON ====================
 
 if page == "AI Style Studio":
-    st.markdown("## 📸 NOVA AI Style Studio")
-    st.write("Upload a photo and choose a garment for a virtual try-on.")
-    st.warning(
-        "Use a photo you have permission to process. AI previews can alter garment "
-        "details and body proportions; they do not guarantee size, fit, fabric or colour."
-    )
-    photo = st.file_uploader("Upload a front-facing or full-length photo",
-                             type=["jpg","jpeg","png"])
-    clothing = [p for p in products if p.get("category") in
-                ["Women Ethnic","Women Western","Men Fashion"]]
-    if not clothing:
-        clothing = products
-    garment = st.selectbox(
-        "Select a product",
-        clothing,
-        format_func=lambda p:f'{p["name"]} — ₹{p["price"]}',
-    )
-    occasion = st.selectbox(
-        "Occasion",["Everyday","College","Office","Festive","Party","Travel"]
-    )
-    style = st.selectbox(
-        "Style preference",["Comfortable","Traditional","Modern","Minimal","Bold colours"]
+    st.markdown("## ✨ NOVA AI Virtual Try-On Studio")
+    st.write(
+        "Preview how an outfit may look using an open-source AI model. "
+        "This version does not use TryOn AI credits."
     )
 
-    if photo:
-        st.image(photo,caption="Photo preview",width=230)
-        if st.button("Estimate face shape (optional)"):
-            shape, note = estimate_face_shape(photo.getvalue())
-            if shape:
-                st.success(f"Approximate result: **{shape}**")
-                suggestions = {
-                    "Oval / long":"Try balanced necklines, layered looks and varied earring lengths.",
-                    "Round / soft":"Try open necklines, structured layers or longer accessories if you like them.",
-                    "Square / strong jaw":"Try soft draping, rounded necklines or curved accessories if preferred.",
-                    "Heart / wider forehead":"Try balanced necklines and accessories that add visual balance.",
-                    "Balanced / oval-like":"Experiment with different necklines, silhouettes and accessories.",
-                }
-                st.write(suggestions.get(shape,"Try the styles you feel comfortable wearing."))
-            st.caption(note)
-    # Free-only mode: the paid provider option is intentionally disabled so this
-    # app cannot accidentally spend TryOn AI credits.
-    tryon_mode = "Free Demo (no AI credits)"
-    st.info("Free Demo mode is enabled. No TryOn AI API calls or paid credits are used.")
+    st.info(
+        "For best results, prepare a clear person photo and a separate "
+        "photo of the garment you want to try."
+    )
 
-    if tryon_mode == "Free Demo (no AI credits)" and st.button(
-        "Generate FREE demo preview", type="primary"
-    ):
-        if not photo:
-            st.error("Upload a photo first.")
-        else:
-            try:
-                garment_resp = requests.get(
-                    garment["image_url"], timeout=30,
-                    headers={"User-Agent": "Mozilla/5.0 NOVA-AI"}
-                )
-                garment_resp.raise_for_status()
-                person_img = Image.open(io.BytesIO(photo.getvalue())).convert("RGB")
-                garment_img = Image.open(io.BytesIO(garment_resp.content)).convert("RGB")
+    with st.expander("📸 Photo preparation tips", expanded=True):
+        st.markdown("""
+        - Use a clear, front-facing, well-lit photo.
+        - Prefer an upper-body or full-body photo over an ID photo.
+        - Use a garment image where the clothing is clearly visible.
+        - Upload only photos you have permission to use.
+        """)
 
-                # Build a clearly labelled side-by-side inspiration board.
-                panel_w, panel_h = 480, 600
-                header_h = 58
-                person_fit = ImageOps.contain(person_img, (panel_w - 24, panel_h - 24))
-                garment_fit = ImageOps.contain(garment_img, (panel_w - 24, panel_h - 24))
-                board = Image.new("RGB", (panel_w * 2, panel_h + header_h), "white")
-                draw = ImageDraw.Draw(board)
-                draw.rectangle((0, 0, panel_w - 1, header_h - 1), fill=(116, 24, 78))
-                draw.rectangle((panel_w, 0, panel_w * 2 - 1, header_h - 1), fill=(116, 24, 78))
-                draw.text((18, 20), "YOUR PHOTO", fill="white")
-                draw.text((panel_w + 18, 20), "SELECTED GARMENT", fill="white")
-                person_x = (panel_w - person_fit.width) // 2
-                garment_x = panel_w + (panel_w - garment_fit.width) // 2
-                person_y = header_h + (panel_h - person_fit.height) // 2
-                garment_y = header_h + (panel_h - garment_fit.height) // 2
-                board.paste(person_fit, (person_x, person_y))
-                board.paste(garment_fit, (garment_x, garment_y))
-                output = io.BytesIO()
-                board.save(output, format="PNG")
-                preview_bytes = output.getvalue()
-                st.session_state.tryon_image = None  # Prevent video API calls from a demo preview.
-                st.image(preview_bytes, caption="Free style inspiration board — not an AI-generated try-on", use_container_width=True)
-                st.info("This free demo uses no TryOn AI credits. It places your photo and the garment side by side; it does not digitally dress your body.")
-                st.download_button(
-                    "Download free demo preview",
-                    data=preview_bytes,
-                    file_name="nova_free_style_demo.png",
-                    mime="image/png"
-                )
-            except Exception as exc:
-                st.error(f"Could not create the free demo preview: {exc}. Try another product image.")
+    st.markdown("### 👗 AI Try-On")
 
-    if tryon_mode == "AI Virtual Try-On (uses credits)" and st.button(
-        "Generate AI virtual try-on (uses provider credits)", type="primary"
-    ):
-        if not photo:
-            st.error("Upload a photo first.")
-        elif not VTON_API_KEY:
-            st.error("Add VTON_API_KEY to Streamlit Secrets.")
-        else:
-            try:
-                # Download and validate the selected product image separately,
-                # so image-host errors are not confused with TryOn API errors.
-                try:
-                    garment_resp = requests.get(
-                        garment["image_url"],
-                        timeout=30,
-                        headers={"User-Agent": "Mozilla/5.0 NOVA-AI"},
-                    )
-                    garment_resp.raise_for_status()
-                    content_type = garment_resp.headers.get("content-type", "").lower()
-                    if not content_type.startswith("image/"):
-                        raise ValueError(
-                            f"Product URL did not return an image (content-type: {content_type or 'unknown'})."
-                        )
-                except Exception as image_exc:
-                    st.error(
-                        "Could not download this product's garment image. "
-                        "Choose another product or replace its image_url with a direct, publicly accessible image URL. "
-                        f"Details: {image_exc}"
-                    )
-                    st.stop()
-
-                files = {
-                    "person_image":(photo.name,photo.getvalue(),photo.type),
-                    "garment_image":("garment.jpg",garment_resp.content,content_type),
-                }
-                try:
-                    response = requests.post(
-                        VTON_URL,
-                        headers={"Authorization":f"Bearer {VTON_API_KEY}"},
-                        files=files,
-                        data={"resolution":"2k","generation_mode":"quality"},
-                        timeout=240,
-                    )
-                    response.raise_for_status()
-                except requests.RequestException as api_exc:
-                    api_response = getattr(api_exc, "response", None)
-                    status_code = getattr(api_response, "status_code", None)
-                    if api_response is not None:
-                        try:
-                            tryon_error_detail = api_response.json()
-                        except ValueError:
-                            tryon_error_detail = api_response.text[:2000]
-                    else:
-                        tryon_error_detail = str(api_exc)
-
-                    if status_code == 400:
-                        st.error(
-                            "TryOn AI rejected the request (HTTP 400). Provider details: "
-                            f"{tryon_error_detail}. Check the message for missing/invalid images, "
-                            "unsupported parameters, or insufficient credits."
-                        )
-                    elif status_code == 401:
-                        st.error(
-                            "TryOn AI rejected the token (HTTP 401). Check VTON_API_KEY in "
-                            "Streamlit Secrets. Provider details: "
-                            f"{tryon_error_detail}"
-                        )
-                    elif status_code == 404:
-                        st.error(
-                            "The product image downloaded, but the TryOn API endpoint returned 404. "
-                            "Check the provider's current endpoint URL. Provider details: "
-                            f"{tryon_error_detail}"
-                        )
-                    else:
-                        st.error(
-                            f"TryOn API request failed (HTTP {status_code or 'unknown'}): "
-                            f"{tryon_error_detail}"
-                        )
-                    st.stop()
-                payload = response.json()
-                experiment_id = payload.get("id") or payload.get("experiment_id")
-                if not experiment_id and isinstance(payload.get("experiment"),dict):
-                    experiment_id = payload["experiment"].get("id")
-                if not experiment_id:
-                    st.error(f"API did not return an experiment ID: {str(payload)[:1000]}")
-                else:
-                    result = requests.get(
-                        VTON_DOWNLOAD_URL,
-                        headers={"Authorization":f"Bearer {VTON_API_KEY}"},
-                        params={"experiment_id":experiment_id},
-                        timeout=180,
-                    )
-                    result.raise_for_status()
-                    if not result.headers.get("content-type","").startswith("image/"):
-                        st.error("Try-on download did not return an image.")
-                    else:
-                        st.session_state.tryon_image = result.content
-                        st.image(result.content,caption=f"AI preview: {garment['name']}")
-                        st.success("Try-on image generated. Review it carefully; it is not a fit guarantee.")
-                        st.caption(f"Occasion: {occasion} · Style: {style}")
-            except Exception as exc:
-                st.error(f"Unexpected virtual try-on error: {exc}")
-
-    # Video generation from the generated try-on image.
-    st.divider()
-    st.markdown("### 🎬 Generate a short fashion video")
     st.caption(
-        "This calls the provider's video-generation API. Results may be a short "
-        "fashion motion clip, not a true 360-degree 3D reconstruction."
+        "The hosted model performs the image generation. "
+        "NOVA AI does not send requests to the paid TryOn AI API."
     )
-    if st.button("Generate video from latest try-on"):
-        if not st.session_state.tryon_image:
-            st.error("Generate a try-on image first.")
-        elif not VTON_API_KEY:
-            st.error("Add VTON_API_KEY to Streamlit Secrets.")
-        else:
-            try:
-                video_prompt = (
-                    "Create a short fashion product showcase video based on the "
-                    "provided image. Keep the outfit and person's appearance as "
-                    "consistent as possible. Slow camera orbit, studio lighting, "
-                    "plain background. Do not claim exact garment fit."
-                )
-                video_response = requests.post(
-                    VIDEO_URL,
-                    headers={"Authorization":f"Bearer {VTON_API_KEY}"},
-                    files={"image":("tryon.png",st.session_state.tryon_image,"image/png")},
-                    data={
-                        "prompt":video_prompt,
-                        "duration":"8",
-                        "resolution":"1080p",
-                        "aspect_ratio":"9:16",
-                    },
-                    timeout=90,
-                )
-                video_response.raise_for_status()
-                video_data = video_response.json()
-                generation_id = video_data.get("generation_id") or video_data.get("id")
-                if not generation_id:
-                    st.error(f"Video API did not return a generation ID: {str(video_data)[:1000]}")
-                else:
-                    progress = st.progress(0)
-                    status_box = st.empty()
-                    completed = False
-                    for attempt in range(24):
-                        status_response = requests.get(
-                            VIDEO_STATUS_URL,
-                            headers={"Authorization":f"Bearer {VTON_API_KEY}"},
-                            params={"generation_id":generation_id},
-                            timeout=30,
-                        )
-                        status_response.raise_for_status()
-                        status_data = status_response.json()
-                        status = str(status_data.get("status","")).lower()
-                        status_box.write(f"Video status: {status or 'processing'}")
-                        progress.progress(min((attempt+1)/24,0.95))
-                        if status in ["completed","complete","succeeded","success"]:
-                            completed = True
-                            break
-                        if status in ["failed","error","cancelled"]:
-                            st.error(f"Video generation failed: {status_data}")
-                            break
-                        time.sleep(5)
-                    if completed:
-                        video_result = requests.get(
-                            VIDEO_DOWNLOAD_URL,
-                            headers={"Authorization":f"Bearer {VTON_API_KEY}"},
-                            params={"generation_id":generation_id},
-                            timeout=180,
-                        )
-                        video_result.raise_for_status()
-                        if video_result.headers.get("content-type","").startswith("video/") or video_result.content[:4] == b"\x00\x00\x00\x18":
-                            st.video(video_result.content)
-                            st.download_button(
-                                "Download generated video",
-                                data=video_result.content,
-                                file_name="nova_ai_tryon_preview.mp4",
-                                mime="video/mp4",
-                            )
-                            progress.progress(1.0)
-                        else:
-                            try:
-                                result_json = video_result.json()
-                                video_url = result_json.get("download_url") or result_json.get("video_url")
-                                if video_url and video_url.startswith("https://"):
-                                    st.video(video_url)
-                                else:
-                                    st.error(f"Video download response was not an MP4: {str(result_json)[:1000]}")
-                            except Exception:
-                                st.error("Video endpoint returned an unexpected format.")
-                    elif not completed:
-                        st.warning("Video is still processing or timed out. Try again later.")
-            except Exception as exc:
-                st.error(f"Video generation failed: {exc}")
+
+    st.link_button(
+        "Open IDM-VTON directly ↗",
+        "https://huggingface.co/spaces/yisol/IDM-VTON",
+        use_container_width=True,
+    )
+
+    st.markdown("#### Try it inside NOVA AI")
+
+    components.iframe(
+        "https://yisol-idm-vton.hf.space",
+        height=900,
+        scrolling=True,
+    )
+
+    st.caption(
+        "If the embedded demo is blank, loading, or unavailable, "
+        "open IDM-VTON directly using the button above."
+    )
+
+    st.warning(
+        "The hosted demo may have queues, usage limits, or downtime. "
+        "AI-generated images are previews and cannot guarantee exact "
+        "clothing fit, size, colour, or fabric."
+    )
+
+# ==================== CHATBOT ====================
+
+                      
+                
 
 # ==================== CHATBOT ====================
 
