@@ -1,160 +1,96 @@
+import os
+import json
+import io
+import re
+from typing import Optional
 
-# ---------- Navigation ----------
-page = st.sidebar.radio(
-    "NOVA MENU",
-    ["Home & Shop", "AI Style Chat", "Virtual Try-On", "Wishlist", "My Cart", "Admin: Add Product"],
-    index=0,
+import requests
+import streamlit as st
+from PIL import Image, ImageOps
+from supabase import create_client, Client
+from groq import Groq
+
+# ============================================================
+# NOVA AI | Fashion & Beauty Store
+# Streamlit + Supabase (cloud database) + Groq (AI chat)
+# ============================================================
+
+st.set_page_config(
+    page_title="NOVA AI | Fashion & Beauty",
+    page_icon="✨",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
-st.sidebar.markdown("---")
-st.sidebar.metric("Items in cart", cart_total_count)
-if not cloud_catalog:
-    st.sidebar.caption("Demo catalog mode")
-else:
-    st.sidebar.caption("Cloud catalog connected")
 
-# ---------- Home / Shop ----------
-if page == "Home & Shop":
-    st.subheader("Find your next favourite look")
-    search = st.text_input("🔎 Search products", placeholder="Try: black dress, kurti, party wear...")
-    filter_col1, filter_col2, filter_col3 = st.columns(3)
-    categories = sorted({str(p.get("category", "Other")) for p in products})
-    colors = sorted({str(p.get("color", "Other")) for p in products})
-    with filter_col1:
-        chosen_category = st.selectbox("Category", ["All"] + categories)
-    with filter_col2:
-        chosen_color = st.selectbox("Color", ["All"] + colors)
-    with filter_col3:
-        max_price = st.slider(
-            "Maximum price",
-            min_value=0,
-            max_value=max(2000, int(max([float(p.get("price") or 0) for p in products] + [2000]))),
-            value=max(2000, int(max([float(p.get("price") or 0) for p in products] + [2000]))),
-            step=100,
-        )
-    sort_by = st.selectbox("Sort by", ["Recommended", "Price: low to high", "Price: high to low", "Name A–Z"])
+# ---------- Secrets ----------
+def secret(name: str, default: str = "") -> str:
+    try:
+        value = st.secrets.get(name, default)
+        return str(value) if value is not None else default
+    except Exception:
+        return os.getenv(name, default)
 
-    filtered = []
-    for p in products:
-        if not product_matches_query(p, search):
-            continue
-        if chosen_category != "All" and p.get("category") != chosen_category:
-            continue
-        if chosen_color != "All" and p.get("color") != chosen_color:
-            continue
-        try:
-            price = float(p.get("price", 0))
-        except (ValueError, TypeError):
-            price = 0
-        if price > max_price:
-            continue
-        filtered.append(p)
+SUPABASE_URL = secret("SUPABASE_URL")
+SUPABASE_KEY = secret("SUPABASE_KEY")  # Use a server-side secret; never expose service-role key to browsers.
+GROQ_API_KEY = secret("GROQ_API_KEY")
+GROQ_MODEL = secret("GROQ_MODEL", "llama-3.3-70b-versatile")
+VTON_API_URL = secret("VTON_API_URL")
+VTON_API_KEY = secret("VTON_API_KEY")
 
-    if sort_by == "Price: low to high":
-        filtered.sort(key=lambda p: float(p.get("price") or 0))
-    elif sort_by == "Price: high to low":
-        filtered.sort(key=lambda p: float(p.get("price") or 0), reverse=True)
-    elif sort_by == "Name A–Z":
-        filtered.sort(key=lambda p: str(p.get("name", "")).lower())
+# ---------- Styling ----------
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+.stApp { background: #fffafd; color: #302333; font-family: 'DM Sans', sans-serif; }
+[data-testid="stSidebar"] { background: #fff1f7; border-right: 1px solid #f2d6e4; }
+h1,h2,h3 { font-family: 'Playfair Display', serif !important; color: #632d4d !important; }
+div.stButton > button, div.stDownloadButton > button {
+  background: linear-gradient(90deg,#d64f91,#9d62c9); color: white; border: 0;
+  border-radius: 11px; font-weight: 700;
+}
+div.stButton > button:hover { filter: brightness(1.06); border: 0; }
+.nova-hero { padding: 28px 30px; border-radius: 22px; color: #fff;
+ background: linear-gradient(115deg,#4a2442,#9e467d,#d875a8); margin-bottom: 18px; }
+.nova-hero h1 { color: #fff !important; margin: 4px 0; }
+.nova-hero p { color: #fff4fa; margin-bottom: 0; }
+.nova-pill { display:inline-block; background:#fae5f0; color:#81385e; padding:5px 10px;
+ border-radius:20px; font-size:12px; margin:2px; }
+.product-card { background:#fff; border:1px solid #f2dce7; padding:12px; border-radius:16px; }
+.small-muted { color:#806b7b; font-size:13px; }
+</style>
+""", unsafe_allow_html=True)
 
-    st.caption(f"{len(filtered)} product(s) found")
-    if not filtered:
-        st.info("No products match these filters. Try another search or price range.")
-    else:
-        columns = st.columns(4)
-        for i, p in enumerate(filtered):
-            with columns[i % 4]:
-                st.markdown('<div class="product-card">', unsafe_allow_html=True)
-                url = product_image_url(p)
-                if url:
-                    st.image(url, use_container_width=True)
-                else:
-                    st.info("Product image not available")
-                st.markdown(f"**{p.get('name', 'Unnamed product')}**")
-                st.markdown(f"### {money(p.get('price'))}")
-                old_price = p.get("original_price")
-                if old_price:
-                    st.caption(f"MRP {money(old_price)}")
-                st.caption(f"{p.get('category', 'Fashion')} · {p.get('color', 'Various')}")
-                st.caption(str(p.get("description", ""))[:100])
-                sizes = p.get("sizes") or ["Free Size"]
-                if isinstance(sizes, str):
-                    try:
-                        sizes = json.loads(sizes)
-                    except json.JSONDecodeError:
-                        sizes = [s.strip() for s in sizes.split(",") if s.strip()]
-                if not isinstance(sizes, list) or not sizes:
-                    sizes = ["Free Size"]
-                size = st.selectbox("Size", sizes, key=f"size_{p.get('id')}")
-                if st.button("Add to cart", key=f"add_{p.get('id')}", use_container_width=True):
-                    add_to_cart(str(p.get("id")), str(size))
-                    st.toast(f"Added {p.get('name')} to cart")
-                wish_id = str(p.get("id"))
-                wish_label = "♥ Saved" if wish_id in st.session_state.wishlist else "♡ Wishlist"
-                if st.button(wish_label, key=f"wish_{p.get('id')}", use_container_width=True):
-                    if wish_id in st.session_state.wishlist:
-                        st.session_state.wishlist.remove(wish_id)
-                    else:
-                        st.session_state.wishlist.append(wish_id)
-                    st.rerun()
-                if st.button("Ask AI about this", key=f"ask_{p.get('id')}", use_container_width=True):
-                    st.session_state["chat_prefill"] = (
-                        f"Help me style the product '{p.get('name')}' priced at {money(p.get('price'))}. "
-                        f"Category: {p.get('category')}. Color: {p.get('color')}. "
-                        "Suggest an occasion and matching items."
-                    )
-                    st.info("Open AI Style Chat from the sidebar to ask about this product.")
-                st.markdown('</div>', unsafe_allow_html=True)
+# ---------- Database connection ----------
+@st.cache_resource
+def get_supabase() -> Optional[Client]:
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+    try:
+        return create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception:
+        return None
 
-# ---------- AI Style Chat ----------
-elif page == "AI Style Chat":
-    st.subheader("💬 Chat with NOVA, your AI shopping stylist")
-    st.write("Ask for outfits by occasion, color, category, or budget. The chatbot receives the current product catalog so it can recommend items that actually exist in this store.")
-    if not GROQ_API_KEY:
-        st.warning("AI chat is not connected yet. Add GROQ_API_KEY in Streamlit Secrets. The store and catalog can still be used.")
-        st.markdown("Get an API key from the [Groq Console](https://console.groq.com/). API access and free-tier limits depend on the provider's current terms.")
-    if st.button("Clear chat history"):
-        st.session_state.chat_history = []
-        st.rerun()
+db = get_supabase()
 
-    for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# ---------- Sample catalog (fallback/demo only) ----------
+# Replace these examples with your own licensed product images and accurate stock/prices.
+DEMO_PRODUCTS = [
+    {"id":"demo-001","name":"Floral Everyday Kurti","category":"Kurtis","price":499.0,"original_price":799.0,"color":"Pink","sizes":["S","M","L","XL"],"description":"Lightweight everyday kurti with a floral print.","image_url":"https://images.unsplash.com/photo-1583391733956-6c78276477e3?auto=format&fit=crop&w=800&q=85","stock":20,"active":True},
+    {"id":"demo-002","name":"Classic Black Dress","category":"Dresses","price":799.0,"original_price":1199.0,"color":"Black","sizes":["S","M","L"],"description":"A versatile black dress for evenings and parties.","image_url":"https://images.unsplash.com/photo-1539008835657-9e8e9680c956?auto=format&fit=crop&w=800&q=85","stock":12,"active":True},
+    {"id":"demo-003","name":"Pastel Co-ord Set","category":"Co-ord Sets","price":899.0,"original_price":1399.0,"color":"Pastel","sizes":["S","M","L","XL"],"description":"Relaxed matching set for casual days and travel.","image_url":"https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=85","stock":8,"active":True},
+    {"id":"demo-004","name":"Blue Casual Top","category":"Tops","price":399.0,"original_price":599.0,"color":"Blue","sizes":["XS","S","M","L"],"description":"Easy-to-style blue top for everyday wear.","image_url":"https://images.unsplash.com/photo-1551163943-3f6a855d1153?auto=format&fit=crop&w=800&q=85","stock":18,"active":True},
+    {"id":"demo-005","name":"Elegant Occasion Saree","category":"Sarees","price":1499.0,"original_price":2199.0,"color":"Purple","sizes":["Free Size"],"description":"Occasion-ready saree styling inspiration.","image_url":"https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=85","stock":6,"active":True},
+    {"id":"demo-006","name":"Minimal White Shirt","category":"Tops","price":549.0,"original_price":799.0,"color":"White","sizes":["S","M","L","XL"],"description":"A clean white shirt that pairs with many outfits.","image_url":"https://images.unsplash.com/photo-1598554747436-c9293d6a588f?auto=format&fit=crop&w=800&q=85","stock":14,"active":True},
+    {"id":"demo-007","name":"Party Wear Midi Dress","category":"Dresses","price":999.0,"original_price":1599.0,"color":"Red","sizes":["S","M","L"],"description":"A statement midi dress for parties and celebrations.","image_url":"https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=800&q=85","stock":9,"active":True},
+    {"id":"demo-008","name":"Everyday Cotton Kurta","category":"Kurtis","price":449.0,"original_price":699.0,"color":"Green","sizes":["S","M","L","XL","XXL"],"description":"Comfortable cotton kurta for everyday use.","image_url":"https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=85","stock":25,"active":True},
+]
 
-    prefill = st.session_state.pop("chat_prefill", "")
-    prompt = st.chat_input("Example: Find a party dress under ₹1000")
-    if not prompt and prefill:
-        st.info("Suggested prompt ready. Copy it into the chat box: " + prefill)
-    if prompt:
-        st.session_state.chat_history.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        if not GROQ_API_KEY:
-            answer = "AI chat needs a Groq API key. Add GROQ_API_KEY to Streamlit Secrets, then retry. You can still use the product search and filters."
-        else:
-            catalog_context = [
-                {
-                    "id": str(p.get("id")),
-                    "name": p.get("name"),
-                    "category": p.get("category"),
-                    "price_inr": p.get("price"),
-                    "color": p.get("color"),
-                    "sizes": p.get("sizes"),
-                    "description": p.get("description"),
-                    "stock": p.get("stock"),
-                }
-                for p in products[:100]
-            ]
-            system_prompt = (
-                "You are NOVA, a helpful Indian fashion ecommerce shopping assistant. "
-                "Recommend only products present in the supplied catalog; never invent products, prices, stock, sizes, discounts, or delivery promises. "
-                "If no product matches the requested budget or criteria, say so honestly and suggest relaxing a filter. "
-                "Use INR. Ask one short clarifying question when necessary. Give practical styling tips. "
-                "Do not infer sensitive traits from a user's photo. "
-                "Catalog JSON: " + json.dumps(catalog_context, ensure_ascii=False)
-            )
-            try:
-                client = Groq(api_key=GROQ_API_KEY)
-                recent = st.session_state.chat_history[-10:]
-                completion = client.chat.completions.create(
-                    model=GROQ_MODEL,
+def fetch_products():
+    """Fetch live catalog from Supabase; use clearly labelled demo data if DB is not configured."""
+    if db is None:
+        return [dict(p) for p in DEMO_PRODUCTS], False
+    try:
+        response = db.table("products").select("*").eq("active", True).order("id").execute()
+        rows = response.data or []
+        return rows, True
+    except Exception:
