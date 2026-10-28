@@ -1,117 +1,160 @@
-                        raise ValueError("Provider response did not include a supported HTTPS image_url.")
-                    img_resp = requests.get(result_url, timeout=60)
-                    img_resp.raise_for_status()
-                    result = Image.open(io.BytesIO(img_resp.content)).convert("RGB")
-                st.success("AI-generated result received from the configured provider.")
-                st.image(result, caption="AI virtual try-on result", use_container_width=True)
-                out = io.BytesIO()
-                result.save(out, format="JPEG", quality=92)
-                st.download_button("Download result", out.getvalue(), "nova_virtual_tryon.jpg", "image/jpeg")
-            except Exception:
-                st.error("Virtual try-on failed. Check that the provider's endpoint, request fields, authentication and response format match this integration. No fake result was shown.")
-    st.caption("This starter assumes an API accepting multipart fields named 'person' and 'garment', and returning image bytes or JSON with an HTTPS 'image_url'. Adapt the integration to your chosen provider's official documentation. A 360° video needs a separate multi-view/3D-capable service.")
 
-# ---------- Wishlist ----------
-elif page == "Wishlist":
-    st.subheader("♡ Your Wishlist")
-    wished = [product_by_id[x] for x in st.session_state.wishlist if x in product_by_id]
-    if not wished:
-        st.info("Your wishlist is empty. Save a product from the shop to see it here.")
-    else:
-        for p in wished:
-            left, right = st.columns([1, 3])
-            with left:
-                if product_image_url(p):
-                    st.image(product_image_url(p), use_container_width=True)
-            with right:
-                st.markdown(f"**{p.get('name')}**")
-                st.write(money(p.get("price")))
-                if st.button("Remove from wishlist", key=f"remove_wish_{p.get('id')}"):
-                    st.session_state.wishlist.remove(str(p.get("id")))
-                    st.rerun()
+# ---------- Navigation ----------
+page = st.sidebar.radio(
+    "NOVA MENU",
+    ["Home & Shop", "AI Style Chat", "Virtual Try-On", "Wishlist", "My Cart", "Admin: Add Product"],
+    index=0,
+)
+st.sidebar.markdown("---")
+st.sidebar.metric("Items in cart", cart_total_count)
+if not cloud_catalog:
+    st.sidebar.caption("Demo catalog mode")
+else:
+    st.sidebar.caption("Cloud catalog connected")
 
-# ---------- Cart ----------
-elif page == "My Cart":
-    st.subheader("🛒 Your Shopping Cart")
-    lines = get_cart_lines()
-    if not lines:
-        st.info("Your cart is empty. Explore the shop and add a product.")
-    else:
-        total = 0.0
-        for key, p, item in lines:
-            c1, c2, c3, c4 = st.columns([1, 3, 1, 1])
-            with c1:
-                if product_image_url(p):
-                    st.image(product_image_url(p), use_container_width=True)
-            with c2:
-                st.markdown(f"**{p.get('name')}**")
-                st.caption(f"Size: {item['size']}")
-                st.write(f"{money(p.get('price'))} × {item['quantity']}")
-            with c3:
-                new_qty = st.number_input("Qty", min_value=1, max_value=20, value=int(item["quantity"]), key=f"qty_{key}")
-                if int(new_qty) != int(item["quantity"]):
-                    st.session_state.cart[key]["quantity"] = int(new_qty)
-                    st.rerun()
-            with c4:
-                if st.button("Remove", key=f"remove_cart_{key}"):
-                    del st.session_state.cart[key]
-                    st.rerun()
-            total += float(p.get("price") or 0) * int(item["quantity"])
-        st.divider()
-        st.markdown(f"## Total: {money(total)}")
-        st.caption("Shipping, taxes, payment and order persistence are not configured in this demo.")
-        st.warning("Demo checkout only — no payment will be collected.")
-        if st.button("Place demo order", type="primary"):
-            st.success("Demo order summary created. This does not create a paid order or reserve inventory.")
-            st.json({
-                "items": [
-                    {"product": p.get("name"), "size": item["size"], "quantity": item["quantity"], "unit_price": p.get("price")}
-                    for _, p, item in lines
-                ],
-                "total_inr": total,
-                "status": "DEMO_ONLY",
-            })
+# ---------- Home / Shop ----------
+if page == "Home & Shop":
+    st.subheader("Find your next favourite look")
+    search = st.text_input("🔎 Search products", placeholder="Try: black dress, kurti, party wear...")
+    filter_col1, filter_col2, filter_col3 = st.columns(3)
+    categories = sorted({str(p.get("category", "Other")) for p in products})
+    colors = sorted({str(p.get("color", "Other")) for p in products})
+    with filter_col1:
+        chosen_category = st.selectbox("Category", ["All"] + categories)
+    with filter_col2:
+        chosen_color = st.selectbox("Color", ["All"] + colors)
+    with filter_col3:
+        max_price = st.slider(
+            "Maximum price",
+            min_value=0,
+            max_value=max(2000, int(max([float(p.get("price") or 0) for p in products] + [2000]))),
+            value=max(2000, int(max([float(p.get("price") or 0) for p in products] + [2000]))),
+            step=100,
+        )
+    sort_by = st.selectbox("Sort by", ["Recommended", "Price: low to high", "Price: high to low", "Name A–Z"])
 
-# ---------- Admin add product ----------
-elif page == "Admin: Add Product":
-    st.subheader("⚙️ Add a product to the cloud catalog")
-    st.warning("Starter admin screen only. Before a public launch, add real authentication and server-side role checks. Do not rely on hiding this page as security.")
-    if db is None:
-        st.error("Configure SUPABASE_URL and SUPABASE_KEY to add products to the cloud database.")
+    filtered = []
+    for p in products:
+        if not product_matches_query(p, search):
+            continue
+        if chosen_category != "All" and p.get("category") != chosen_category:
+            continue
+        if chosen_color != "All" and p.get("color") != chosen_color:
+            continue
+        try:
+            price = float(p.get("price", 0))
+        except (ValueError, TypeError):
+            price = 0
+        if price > max_price:
+            continue
+        filtered.append(p)
+
+    if sort_by == "Price: low to high":
+        filtered.sort(key=lambda p: float(p.get("price") or 0))
+    elif sort_by == "Price: high to low":
+        filtered.sort(key=lambda p: float(p.get("price") or 0), reverse=True)
+    elif sort_by == "Name A–Z":
+        filtered.sort(key=lambda p: str(p.get("name", "")).lower())
+
+    st.caption(f"{len(filtered)} product(s) found")
+    if not filtered:
+        st.info("No products match these filters. Try another search or price range.")
     else:
-        with st.form("add_product_form"):
-            name = st.text_input("Product name")
-            category = st.selectbox("Category", ["Kurtis", "Dresses", "Tops", "Sarees", "Co-ord Sets", "Accessories", "Beauty"])
-            price = st.number_input("Price (INR)", min_value=1.0, value=499.0, step=50.0)
-            original_price = st.number_input("Original price (INR)", min_value=0.0, value=799.0, step=50.0)
-            color = st.text_input("Color", "Pink")
-            sizes_text = st.text_input("Sizes, comma separated", "S,M,L,XL")
-            image_url = st.text_input("Public product image HTTPS URL")
-            description = st.text_area("Description")
-            stock = st.number_input("Stock", min_value=0, value=10, step=1)
-            submitted = st.form_submit_button("Save product")
-        if submitted:
-            if not name.strip() or not image_url.startswith("https://"):
-                st.error("Enter a product name and an HTTPS image URL.")
-            else:
-                record = {
-                    "name": name.strip(),
-                    "category": category,
-                    "price": float(price),
-                    "original_price": float(original_price),
-                    "color": color.strip(),
-                    "sizes": [s.strip() for s in sizes_text.split(",") if s.strip()],
-                    "image_url": image_url.strip(),
-                    "description": description.strip(),
-                    "stock": int(stock),
-                    "active": True,
+        columns = st.columns(4)
+        for i, p in enumerate(filtered):
+            with columns[i % 4]:
+                st.markdown('<div class="product-card">', unsafe_allow_html=True)
+                url = product_image_url(p)
+                if url:
+                    st.image(url, use_container_width=True)
+                else:
+                    st.info("Product image not available")
+                st.markdown(f"**{p.get('name', 'Unnamed product')}**")
+                st.markdown(f"### {money(p.get('price'))}")
+                old_price = p.get("original_price")
+                if old_price:
+                    st.caption(f"MRP {money(old_price)}")
+                st.caption(f"{p.get('category', 'Fashion')} · {p.get('color', 'Various')}")
+                st.caption(str(p.get("description", ""))[:100])
+                sizes = p.get("sizes") or ["Free Size"]
+                if isinstance(sizes, str):
+                    try:
+                        sizes = json.loads(sizes)
+                    except json.JSONDecodeError:
+                        sizes = [s.strip() for s in sizes.split(",") if s.strip()]
+                if not isinstance(sizes, list) or not sizes:
+                    sizes = ["Free Size"]
+                size = st.selectbox("Size", sizes, key=f"size_{p.get('id')}")
+                if st.button("Add to cart", key=f"add_{p.get('id')}", use_container_width=True):
+                    add_to_cart(str(p.get("id")), str(size))
+                    st.toast(f"Added {p.get('name')} to cart")
+                wish_id = str(p.get("id"))
+                wish_label = "♥ Saved" if wish_id in st.session_state.wishlist else "♡ Wishlist"
+                if st.button(wish_label, key=f"wish_{p.get('id')}", use_container_width=True):
+                    if wish_id in st.session_state.wishlist:
+                        st.session_state.wishlist.remove(wish_id)
+                    else:
+                        st.session_state.wishlist.append(wish_id)
+                    st.rerun()
+                if st.button("Ask AI about this", key=f"ask_{p.get('id')}", use_container_width=True):
+                    st.session_state["chat_prefill"] = (
+                        f"Help me style the product '{p.get('name')}' priced at {money(p.get('price'))}. "
+                        f"Category: {p.get('category')}. Color: {p.get('color')}. "
+                        "Suggest an occasion and matching items."
+                    )
+                    st.info("Open AI Style Chat from the sidebar to ask about this product.")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------- AI Style Chat ----------
+elif page == "AI Style Chat":
+    st.subheader("💬 Chat with NOVA, your AI shopping stylist")
+    st.write("Ask for outfits by occasion, color, category, or budget. The chatbot receives the current product catalog so it can recommend items that actually exist in this store.")
+    if not GROQ_API_KEY:
+        st.warning("AI chat is not connected yet. Add GROQ_API_KEY in Streamlit Secrets. The store and catalog can still be used.")
+        st.markdown("Get an API key from the [Groq Console](https://console.groq.com/). API access and free-tier limits depend on the provider's current terms.")
+    if st.button("Clear chat history"):
+        st.session_state.chat_history = []
+        st.rerun()
+
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    prefill = st.session_state.pop("chat_prefill", "")
+    prompt = st.chat_input("Example: Find a party dress under ₹1000")
+    if not prompt and prefill:
+        st.info("Suggested prompt ready. Copy it into the chat box: " + prefill)
+    if prompt:
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        if not GROQ_API_KEY:
+            answer = "AI chat needs a Groq API key. Add GROQ_API_KEY to Streamlit Secrets, then retry. You can still use the product search and filters."
+        else:
+            catalog_context = [
+                {
+                    "id": str(p.get("id")),
+                    "name": p.get("name"),
+                    "category": p.get("category"),
+                    "price_inr": p.get("price"),
+                    "color": p.get("color"),
+                    "sizes": p.get("sizes"),
+                    "description": p.get("description"),
+                    "stock": p.get("stock"),
                 }
-                try:
-                    db.table("products").insert(record).execute()
-                    st.success("Product saved to Supabase. Refresh the app to load the updated catalog.")
-                    st.cache_data.clear()
-                except Exception:
-                    st.error("Could not save product. Check the products table schema and Supabase permissions.")
-
-st.divider()
-st.caption("NOVA AI · Shopping demo. Verify product rights, inventory, prices, database security, user authentication, payment processing and privacy before production use.")
+                for p in products[:100]
+            ]
+            system_prompt = (
+                "You are NOVA, a helpful Indian fashion ecommerce shopping assistant. "
+                "Recommend only products present in the supplied catalog; never invent products, prices, stock, sizes, discounts, or delivery promises. "
+                "If no product matches the requested budget or criteria, say so honestly and suggest relaxing a filter. "
+                "Use INR. Ask one short clarifying question when necessary. Give practical styling tips. "
+                "Do not infer sensitive traits from a user's photo. "
+                "Catalog JSON: " + json.dumps(catalog_context, ensure_ascii=False)
+            )
+            try:
+                client = Groq(api_key=GROQ_API_KEY)
+                recent = st.session_state.chat_history[-10:]
+                completion = client.chat.completions.create(
+                    model=GROQ_MODEL,
