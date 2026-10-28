@@ -330,90 +330,155 @@ def estimate_face_shape(image_bytes):
 
 # ==================== STYLE STUDIO + TRY-ON ====================
 
-if page == "AI Style Studio":
-    st.markdown("## 📸 NOVA AI Style Studio")
-    st.write("Upload a photo and choose a garment for a virtual try-on.")
-    st.warning(
-        "Use a photo you have permission to process. AI previews can alter garment "
-        "details and body proportions; they do not guarantee size, fit, fabric or colour."
-    )
-    photo = st.file_uploader("Upload a front-facing or full-length photo",
-                             type=["jpg","jpeg","png"])
-    clothing = [p for p in products if p.get("category") in
-                ["Women Ethnic","Women Western","Men Fashion"]]
-    if not clothing:
-        clothing = products
-    garment = st.selectbox(
-        "Select a product",
-        clothing,
-        format_func=lambda p:f'{p["name"]} — ₹{p["price"]}',
-    )
-    occasion = st.selectbox(
-        "Occasion",["Everyday","College","Office","Festive","Party","Travel"]
-    )
-    style = st.selectbox(
-        "Style preference",["Comfortable","Traditional","Modern","Minimal","Bold colours"]
-    )
-
-    if photo:
-        st.image(photo,caption="Photo preview",width=230)
-        if st.button("Estimate face shape (optional)"):
-            shape, note = estimate_face_shape(photo.getvalue())
-            if shape:
-                st.success(f"Approximate result: **{shape}**")
-                suggestions = {
-                    "Oval / long":"Try balanced necklines, layered looks and varied earring lengths.",
-                    "Round / soft":"Try open necklines, structured layers or longer accessories if you like them.",
-                    "Square / strong jaw":"Try soft draping, rounded necklines or curved accessories if preferred.",
-                    "Heart / wider forehead":"Try balanced necklines and accessories that add visual balance.",
-                    "Balanced / oval-like":"Experiment with different necklines, silhouettes and accessories.",
-                }
-                st.write(suggestions.get(shape,"Try the styles you feel comfortable wearing."))
-            st.caption(note)
-    if st.button("Generate AI virtual try-on",type="primary"):
+    if st.button("Generate AI virtual try-on", type="primary"):
         if not photo:
             st.error("Upload a photo first.")
         elif not VTON_API_KEY:
             st.error("Add VTON_API_KEY to Streamlit Secrets.")
         else:
             try:
-                garment_resp = requests.get(garment["image_url"],timeout=30)
-                garment_resp.raise_for_status()
+                # 1. Download the selected garment image.
+                image_url = garment.get("image_url", "").strip()
+
+                if not image_url.startswith("https://"):
+                    st.error("The selected product has an invalid image URL.")
+                    st.stop()
+
+                garment_resp = requests.get(
+                    image_url,
+                    timeout=30,
+                    headers={"User-Agent": "NOVA-AI/1.0"},
+                )
+
+                if garment_resp.status_code != 200:
+                    st.error(
+                        f"Product image unavailable "
+                        f"(HTTP {garment_resp.status_code}). "
+                        "Replace this product's image_url with a working "
+                        "public HTTPS image URL."
+                    )
+                    st.stop()
+
+                content_type = garment_resp.headers.get(
+                    "Content-Type", ""
+                ).split(";")[0].lower()
+
+                if content_type not in ("image/jpeg", "image/png", "image/webp"):
+                    st.error("The product URL did not return a supported image.")
+                    st.stop()
+
+                # Verify the downloaded image can be opened.
+                from PIL import Image
+                from io import BytesIO
+
+                garment_bytes = garment_resp.content
+                Image.open(BytesIO(garment_bytes)).verify()
+
+                # 2. Prepare the selfie and garment as uploaded files.
+                person_bytes = photo.getvalue()
+                person_type = photo.type or "image/jpeg"
+
                 files = {
-                    "person_image":(photo.name,photo.getvalue(),photo.type),
-                    "garment_image":("garment.jpg",garment_resp.content,"image/jpeg"),
+                    "person_image": (
+                        photo.name or "person.jpg",
+                        person_bytes,
+                        person_type,
+                    ),
+                    "garment_image": (
+                        "garment.png" if content_type == "image/png"
+                        else "garment.jpg",
+                        garment_bytes,
+                        content_type,
+                    ),
                 }
+
+                # 3. Send the request to TryOn AI, not to Unsplash.
                 response = requests.post(
-                    VTON_URL,
-                    headers={"Authorization":f"Bearer {VTON_API_KEY}"},
+                    "https://api.tryonlabs.ai/api/v1/vton/generate/",
+                    headers={
+                        "Authorization": f"Bearer {VTON_API_KEY}"
+                    },
                     files=files,
-                    data={"resolution":"2k","generation_mode":"quality"},
+                    data={
+                        "resolution": "2k",
+                        "generation_mode": "quality",
+                    },
                     timeout=240,
                 )
-                response.raise_for_status()
-                payload = response.json()
-                experiment_id = payload.get("id") or payload.get("experiment_id")
-                if not experiment_id and isinstance(payload.get("experiment"),dict):
-                    experiment_id = payload["experiment"].get("id")
-                if not experiment_id:
-                    st.error(f"API did not return an experiment ID: {str(payload)[:1000]}")
-                else:
-                    result = requests.get(
-                        VTON_DOWNLOAD_URL,
-                        headers={"Authorization":f"Bearer {VTON_API_KEY}"},
-                        params={"experiment_id":experiment_id},
-                        timeout=180,
+
+                if not response.ok:
+                    st.error(
+                        f"TryOn AI returned HTTP {response.status_code}: "
+                        f"{response.text[:1000]}"
                     )
-                    result.raise_for_status()
-                    if not result.headers.get("content-type","").startswith("image/"):
-                        st.error("Try-on download did not return an image.")
-                    else:
-                        st.session_state.tryon_image = result.content
-                        st.image(result.content,caption=f"AI preview: {garment['name']}")
-                        st.success("Try-on image generated. Review it carefully; it is not a fit guarantee.")
-                        st.caption(f"Occasion: {occasion} · Style: {style}")
+                    st.stop()
+
+                payload = response.json()
+                experiment_id = (
+                    payload.get("id")
+                    or payload.get("experiment_id")
+                )
+
+                if not experiment_id and isinstance(
+                    payload.get("experiment"), dict
+                ):
+                    experiment_id = payload["experiment"].get("id")
+
+                if not experiment_id:
+                    st.error(
+                        "The API response did not contain an experiment ID: "
+                        + str(payload)[:1000]
+                    )
+                    st.stop()
+
+                # 4. Download the generated try-on result.
+                result = requests.get(
+                    "https://api.tryonlabs.ai/api/v1/vton/download/",
+                    headers={
+                        "Authorization": f"Bearer {VTON_API_KEY}"
+                    },
+                    params={"experiment_id": experiment_id},
+                    timeout=180,
+                )
+                result.raise_for_status()
+
+                result_type = result.headers.get(
+                    "Content-Type", ""
+                ).split(";")[0].lower()
+
+                if result_type not in (
+                    "image/png", "image/jpeg", "image/webp"
+                ):
+                    st.error(
+                        "The provider did not return an image. "
+                        f"Response type: {result_type or 'unknown'}. "
+                        f"Response: {result.text[:500]}"
+                    )
+                    st.stop()
+
+                # 5. Display and allow downloading the result.
+                result_image = Image.open(BytesIO(result.content))
+                st.success("Virtual try-on generated!")
+                st.image(
+                    result_image,
+                    caption=f"NOVA AI try-on preview — {garment['name']}",
+                    use_container_width=True,
+                )
+
+                output = BytesIO()
+                result_image.save(output, format="PNG")
+
+                st.download_button(
+                    "Download try-on image",
+                    data=output.getvalue(),
+                    file_name="nova_ai_tryon.png",
+                    mime="image/png",
+                )
+
+            except requests.RequestException as exc:
+                st.error(f"Network/API request failed: {exc}")
             except Exception as exc:
-                st.error(f"Try-on API failed. Check your provider access and request format: {exc}")
+                st.error(f"Virtual try-on failed: {exc}")
 
     # Video generation from the generated try-on image.
     st.divider()
